@@ -70,9 +70,9 @@ char const* string_desc_arr [] = {
     "monome",                // 1: Manufacturer
     "iii",                      // 2: Product
     serial_str,                 // 3: Serial Number
-    "dinkii cdc",               // 4: Serial Port
-    "dinkii midi",              // 5: MIDI
-    "dinkii webusb",            // 6: Vendor
+    "iii cdc",               // 4: Serial Port
+    "iii midi",              // 5: MIDI
+    "iii webusb",            // 6: Vendor
     "monome",                   // 7: Manufacturer Monome
     "grid",               // 8: Product Monome
     ""

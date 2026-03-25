@@ -1,6 +1,6 @@
+#include <stdint.h>
 #include <stdlib.h>
 #include "pico/stdlib.h"
-#include <stdint.h>
 
 #define DEVICE_VERSION "1.1.0"
 
@@ -93,8 +93,8 @@ const uint8_t addrRowTwo[4] = {0x33,0x31,0x3E,0x36};
   #define I2C_BUS i2c1
   #define I2C_SDA 26
   #define I2C_SCL 27
-  #define LED_PIN 25  //  LED1
-  #define LED_PIN2 26 // dinkii LED2
+  #define LED_PIN 26  //  LED1
+  #define LED_PIN2 25 //  LED2
 #endif
 
 // DEFAULT FOR PICO

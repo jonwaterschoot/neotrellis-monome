@@ -77,9 +77,9 @@ int main() {
 
     // Give USB time to stabilize
     sleep_ms(500);
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < 500; i++) {
         tud_task();
-        sleep_ms(10);
+        sleep_ms(1);
     }
 
 

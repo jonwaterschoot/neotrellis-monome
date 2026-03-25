@@ -250,12 +250,24 @@ extern "C" void device_init() {
 
     mode_check();
 
-    trellis.setPixelColor(0, 0xFFFFFF);
-    trellis.show();
-    sleep_ms(100);
-    trellis.setPixelColor(0, 0x000000);
-    trellis.show();
-    
+    if (mode = 1){
+        trellis.setPixelColor(0, 0xFFFFFF);
+        trellis.setPixelColor(7, 0xFFFFFF);
+        trellis.setPixelColor(15, 0xFFFFFF);
+        trellis.show();
+        sleep_ms(100);
+        trellis.setPixelColor(0, 0x000000);
+        trellis.setPixelColor(7, 0x000000);
+        trellis.setPixelColor(15, 0x000000);
+        trellis.show();
+    }else{
+        trellis.setPixelColor(0, 0xFFFFFF);
+        trellis.show();
+        sleep_ms(100);
+        trellis.setPixelColor(0, 0x000000);
+        trellis.show();   
+    }
+   
 }
 
 extern "C" void device_task() {
