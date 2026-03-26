@@ -86,7 +86,7 @@ char const* string_desc_arr [] = {
     "neotrellis " BOARD_NAME " usb", // 6: Vendor
     "monome",                   // 7: Manufacturer Monome
     "grid",               // 8: Product Monome
-    ""
+    "m4216126"            // 9: Serial Monome — must match expected format for serialosc/Norns detection
 };
 
 enum {
@@ -109,7 +109,7 @@ tusb_desc_device_t const desc_devices[2] =
     .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
 
     .idVendor           = USB_VID,
-    .idProduct          = 0x1102,  // bumped from 0x1101 to force fresh Windows driver enumeration
+    .idProduct          = 0x1101,
     .bcdDevice          = 0x0100,
 
     .iManufacturer      = STRING_MANUFACTURER,
