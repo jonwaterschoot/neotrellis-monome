@@ -83,6 +83,21 @@ static const uint8_t addrRowTwo[2] = {0x3E, 0x36};
 
 If you're not using the default address configuration, update these arrays in `config.h` to match your boards.
 
+### USB device names
+
+When connected, the device appears with names derived from the board type at compile time:
+
+| Board | MIDI port name | Serial port name |
+|---|---|---|
+| PICO | `neotrellis pico iii` | `neotrellis pico cdc` |
+| KB2040QT | `neotrellis kb2040 iii` | `neotrellis kb2040 cdc` |
+| DINKII | `neotrellis dinkii iii` | `neotrellis dinkii cdc` |
+| FEATHER2040QT | `neotrellis feather iii` | `neotrellis feather cdc` |
+
+The MIDI port is visible in DAWs and MIDI routing tools (e.g. MidiBerry) on Windows, macOS, and Linux.
+
+**Note for Windows:** If the device was previously connected with an older firmware, Windows may cache the old driver. Uninstall the device in Device Manager and replug to force re-enumeration.
+
 ### iii
 
 iii is an interactive scripting environment that runs on the device itself.  With grid, this can turn the device into a user-scriptable midi controller/sequencer.

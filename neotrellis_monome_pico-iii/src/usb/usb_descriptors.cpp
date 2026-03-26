@@ -25,9 +25,20 @@
 
 #include "tusb.h"
 #include <pico/unique_id.h>
+#include "config.h"
 
 #define USB_VID   0xCAFE
 #define USB_BCD   0x0200
+
+#if BOARDTYPE == DINKII
+  #define BOARD_NAME "dinkii"
+#elif BOARDTYPE == KB2040QT
+  #define BOARD_NAME "kb2040"
+#elif BOARDTYPE == FEATHER2040QT
+  #define BOARD_NAME "feather"
+#else
+  #define BOARD_NAME "pico"
+#endif
 
 static char serial_str[16];
 
@@ -67,12 +78,12 @@ enum {
 // const static char const *string_desc_arr[] = {
 char const* string_desc_arr [] = {
     (const char[]){0x09, 0x04}, // 0: supported language is English (0x0409)
-    "monome",                // 1: Manufacturer
-    "iii",                      // 2: Product
-    serial_str,                 // 3: Serial Number
-    "iii cdc",               // 4: Serial Port
-    "iii midi",              // 5: MIDI
-    "iii webusb",            // 6: Vendor
+    "monome",                        // 1: Manufacturer
+    "iii",                           // 2: Product
+    serial_str,                      // 3: Serial Number
+    "neotrellis " BOARD_NAME " cdc", // 4: Serial Port
+    "neotrellis " BOARD_NAME " iii", // 5: MIDI
+    "neotrellis " BOARD_NAME " usb", // 6: Vendor
     "monome",                   // 7: Manufacturer Monome
     "grid",               // 8: Product Monome
     ""
@@ -98,7 +109,7 @@ tusb_desc_device_t const desc_devices[2] =
     .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
 
     .idVendor           = USB_VID,
-    .idProduct          = 0x1101,
+    .idProduct          = 0x1102,  // bumped from 0x1101 to force fresh Windows driver enumeration
     .bcdDevice          = 0x0100,
 
     .iManufacturer      = STRING_MANUFACTURER,
@@ -146,7 +157,7 @@ enum
 
 // #define CONFIG_TOTAL_LEN  (TUD_CONFIG_DESC_LEN + TUD_MIDI_DESC_LEN)
 #define CONFIG_TOTAL_LEN_CDC  (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN)
-#define CONFIG_TOTAL_LEN_MIDI  (TUD_CONFIG_DESC_LEN + TUD_MIDI_DESC_LEN + TUD_CDC_DESC_LEN)
+#define CONFIG_TOTAL_LEN_MIDI  (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + 8 + TUD_MIDI_DESC_LEN)
 
 #if CFG_TUSB_MCU == OPT_MCU_LPC175X_6X || CFG_TUSB_MCU == OPT_MCU_LPC177X_8X || CFG_TUSB_MCU == OPT_MCU_LPC40XX
   // LPC 17xx and 40xx endpoint type (bulk/interrupt/iso) are fixed by its number
@@ -175,6 +186,11 @@ uint8_t const desc_fs_configuration_0[] =
 
   // 1st CDC: Interface number, string index, EP notification address and size, EP data address (out, in) and size.
   TUD_CDC_DESCRIPTOR(ITF_NUM_CDC, STRING_CDC, EPNUM_CDC_NOTIF, 8, EPNUM_CDC_OUT, EPNUM_CDC_IN, 64),
+
+  // IAD for MIDI function — required by Windows to associate the Audio Control and
+  // MIDI Streaming interfaces as a single function and load usbaudio.sys for them.
+  // Without this, Android enumerates MIDI fine but Windows ignores the interfaces.
+  8, TUSB_DESC_INTERFACE_ASSOCIATION, ITF_NUM_MIDI, 2, TUSB_CLASS_AUDIO, AUDIO_SUBCLASS_UNDEFINED, 0x00, 0x00,
 
   // Interface number, string index, EP Out & EP In address, EP size
   TUD_MIDI_DESCRIPTOR(ITF_NUM_MIDI, STRING_MIDI, EPNUM_MIDI_OUT, EPNUM_MIDI_IN, 64)

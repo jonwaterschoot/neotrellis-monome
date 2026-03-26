@@ -65,15 +65,16 @@ void SetupBoard() {
 // ***************************************************************************
 
 int main() {
-    // flash_init() must be the very first call — it locates the FS partition
+    // flash_init() must be the very first call — it locates the FS partitionw
     // and reads/writes the mode byte.
     flash_init();
 
     bool run_script = true;
 
     SetupBoard();
-    device_init(); // NeoTrellis hardware init
-    tud_init(BOARD_TUD_RHPORT);
+    device_init(); // NeoTrellis hardware init (sets `mode` from flash via mode_check())
+    g_monome_mode = mode; // sync USB descriptor with stored mode before USB init
+    tud_init(BOARD_TUD_RHPORT); // enable USB
 
     // Give USB time to stabilize
     sleep_ms(500);
