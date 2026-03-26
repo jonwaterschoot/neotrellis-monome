@@ -83,6 +83,32 @@ static const uint8_t addrRowTwo[2] = {0x3E, 0x36};
 
 If you're not using the default address configuration, update these arrays in `config.h` to match your boards.
 
+### LED color and brightness
+
+All LED settings are in `config.h`:
+
+```c
+#define BRIGHTNESS 96   // overall brightness (lower = dimmer; may need reduction for larger grids)
+
+#define R 255           // red component   (0–255)
+#define G 255           // green component (0–255)
+#define B 255           // blue component  (0–255)
+
+// gamma table for 16 brightness levels (monome uses 0–15)
+static const uint8_t gammaTable[16] = {0, 2, 3, 6, 11, 18, 25, 32,
+                                       41, 59, 70, 80, 92, 103, 115, 127};
+static const uint8_t gammaAdj = 1; // multiply gamma output by 1 or 2
+```
+
+For example, to use a green-tinted color:
+```c
+#define R 73
+#define G 214
+#define B 148
+```
+
+`BRIGHTNESS` caps the overall output — useful if NeoPixels are too bright when powered over USB. `gammaAdj` can be set to `2` to boost perceived brightness at lower levels.
+
 ### USB device names
 
 When connected, the device appears with names derived from the board type at compile time:

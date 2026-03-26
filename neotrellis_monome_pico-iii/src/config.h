@@ -116,9 +116,21 @@ const uint8_t addrRowTwo[4] = {0x33,0x31,0x3E,0x36};
     // may need adjustment for larger grids
     // use gammaTable and gammaAdj below to adjust levels
 
+// White
 #define R 255
 #define G 255
 #define B 255
+
+// Seafoam / Mint Green
+// #define R 73
+// #define G 214
+// #define B 148
+
+// Warm Orange
+// #define R 250
+// #define G 80
+// #define B 10
+
 
 // gamma table for 16 levels of brightness
 static const uint8_t gammaTable[16] = {0,  2,  3,  6,  11, 18,  25,  32,
