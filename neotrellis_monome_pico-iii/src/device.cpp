@@ -215,8 +215,6 @@ extern "C" bool check_device_key() {
 extern "C" void mode_check() {
     uint8_t saved = flash_read_mode();
     mode = saved;
-    
-
     check_device_key();   // polls 500 ms; keyCheck toggles mode if key 0,0 pressed
     
     if (mode != saved) {
@@ -250,7 +248,7 @@ extern "C" void device_init() {
 
     mode_check();
 
-    if (mode = 1){
+    if (mode == 0){
         trellis.setPixelColor(0, 0xFFFFFF);
         trellis.setPixelColor(7, 0xFFFFFF);
         trellis.setPixelColor(15, 0xFFFFFF);
@@ -287,6 +285,7 @@ extern "C" void device_task() {
         sendLeds_iii();
         grid_dirty = false;
     }
+    tud_cdc_n_write_flush(0);
 }
 
 extern "C" void device_handle_serial(uint8_t *data, uint32_t len) {

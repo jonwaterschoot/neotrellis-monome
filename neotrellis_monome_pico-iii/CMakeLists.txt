@@ -24,7 +24,7 @@ cmake_minimum_required(VERSION 3.13)
 # adafruit_kb2040  (included in Pico SDK)
 # board_dinkii  (included in neotrellis repo)
 # adafruit_feather_rp2040  (included in Pico SDK)
-set(PICO_BOARD pico CACHE STRING "Board type")
+set(PICO_BOARD board_dinkii CACHE STRING "Board type")
 
 set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR} CACHE STRING "Additional board header directories")
 include(pico_sdk_import.cmake)
@@ -42,12 +42,14 @@ pico_sdk_init()
 #------------------------------------------------------------------------
 #--- embedded lua to c include
 
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
 add_custom_command(
         OUTPUT
             ${CMAKE_SOURCE_DIR}/src/iii/resource/lib_lua.h
             ${CMAKE_SOURCE_DIR}/src/iii/resource/lib_lua.c
         COMMAND
-            python3 ${CMAKE_SOURCE_DIR}/src/tools/embed.py ${CMAKE_SOURCE_DIR}/src/iii/lua/lib.lua ${CMAKE_SOURCE_DIR}/src/iii/resource
+            ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/src/tools/embed.py ${CMAKE_SOURCE_DIR}/src/iii/lua/lib.lua ${CMAKE_SOURCE_DIR}/src/iii/resource
         DEPENDS
             ${CMAKE_SOURCE_DIR}/src/iii/lua/lib.lua
 )
@@ -91,7 +93,7 @@ target_compile_definitions(neotrellis-iii PRIVATE
     LUA_COMPAT_5_2
     LUA_USE_C89
     USE_TINYUSB=1
-    BOARDTYPE=1  # must be number - options are:  1=PICO, 2=KB2040QT, 3=DINKII, 4=FEATHER2040QT
+    BOARDTYPE=3  # must be number - options are:  1=PICO, 2=KB2040QT, 3=DINKII, 4=FEATHER2040QT
     GRIDCOUNT=3   # must be number - options are:  1=4X4, 2=8x8, 3=16x8, 4=16x16 
 )
 
