@@ -250,7 +250,7 @@ extern "C" void device_init() {
 
     mode_check();
 
-    if (mode = 1){
+    if (mode == 1){
         trellis.setPixelColor(0, 0xFFFFFF);
         trellis.setPixelColor(7, 0xFFFFFF);
         trellis.setPixelColor(15, 0xFFFFFF);
