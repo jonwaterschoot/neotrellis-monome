@@ -86,7 +86,7 @@ char const* string_desc_arr [] = {
     "neotrellis " BOARD_NAME " usb", // 6: Vendor
     "monome",                   // 7: Manufacturer Monome
     "grid",               // 8: Product Monome
-    "m4216126"            // 9: Serial Monome — must match expected format for serialosc/Norns detection
+    ""                    // 9: Serial Monome — dynamic serial not needed; monome mode serial is unrelated to MIDI
 };
 
 enum {
