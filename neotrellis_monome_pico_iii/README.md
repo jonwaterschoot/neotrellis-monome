@@ -1,5 +1,4 @@
-# Neotrellis Grid Code for Raspberry Pi Pico/RP2040 boards  
-
+# Neotrellis Grid + iii Code for Raspberry Pi Pico/RP2040 boards  
 
 This version is rewritten to use the Raspberry Pi Pico VS Code Extension and includes the monome iii scripting mode.  
 
@@ -126,3 +125,10 @@ See https://github.com/monome/iii for documentation.
 
 The `diii` REPL tool is hosted at https://monome.org/diii  
 
+The neotrellis build includes a custom lua function to change the entire grid color (but not individual pixel colors). 
+
+You can use this in scripts as follows. The if statement is there to avoid errors on regular iii devices.  
+
+```if grid_color then grid_color(250,80,10) end```
+
+Please don't bother monome or the lines forum with regards to this particular feature.  
