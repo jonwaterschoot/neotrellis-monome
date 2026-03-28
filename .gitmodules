@@ -1,6 +1,6 @@
 [submodule "neotrellis_monome_pico-iii/src/littlefs"]
 	path = neotrellis_monome_pico-iii/src/littlefs
-	url = https://codeberg.org/tehn/iii
+	url = https://codeberg.org/tehn/littlefs
 [submodule "neotrellis_monome_pico-iii/src/iii"]
 	path = neotrellis_monome_pico-iii/src/iii
 	url = https://codeberg.org/tehn/iii
