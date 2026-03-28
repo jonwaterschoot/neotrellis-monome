@@ -269,7 +269,7 @@ extern "C" void device_init() {
         trellis.setPixelColor(0, 0x000000);
         trellis.show();   
     }
-   
+
 }
 
 extern "C" void device_task() {

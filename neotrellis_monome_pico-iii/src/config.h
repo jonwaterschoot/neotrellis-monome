@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "pico/stdlib.h"
 
-#define DEVICE_VERSION "1.1.0"
+#define DEVICE_VERSION "v260324"
 
 #define TEST 0 // SET TO 1 for testing
 

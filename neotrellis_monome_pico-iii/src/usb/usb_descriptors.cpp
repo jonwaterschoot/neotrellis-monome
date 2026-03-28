@@ -79,7 +79,7 @@ char const* string_desc_arr [] = {
 };
 
 enum {
-  USB_MODE_DINKII,
+  USB_MODE_III,
   USB_MODE_MONOME,
 };
 extern uint8_t g_monome_mode;
@@ -88,7 +88,7 @@ extern uint8_t g_monome_mode;
 // Device Descriptors
 //--------------------------------------------------------------------+
 tusb_desc_device_t const desc_devices[2] = 
-{ ////DINK-III
+{   //// III
     {.bLength = sizeof(tusb_desc_device_t),
     .bDescriptorType    = TUSB_DESC_DEVICE,
     .bcdUSB             = 0x0200,
@@ -107,7 +107,7 @@ tusb_desc_device_t const desc_devices[2] =
 
     .bNumConfigurations = 0x01},
 
-  ////MONOME
+    //// MONOME
     {.bLength = sizeof(tusb_desc_device_t),
     .bDescriptorType  = TUSB_DESC_DEVICE,
     .bcdUSB           = 0x0200,
