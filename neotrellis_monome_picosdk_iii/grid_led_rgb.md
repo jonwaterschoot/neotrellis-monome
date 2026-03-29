@@ -13,7 +13,8 @@ Existing functions are unchanged and fully backward-compatible.
 
 ## Behavior
 
-- `grid_led_rgb(x, y, r, g, b)` sets a per-pixel RGB override. On the next `grid_refresh()` the pixel displays that exact color, bypassing the global tint × brightness calculation.
+- `grid_led_rgb(x, y, r, g, b)` sets a per-pixel RGB override. On the next `grid_refresh()` the pixel displays that exact color.
+- **Power Safety**: To prevent power brown-outs, the firmware includes a **Global Power Limiter**. If the total requested brightness of the entire grid exceeds the safe USB power budget (matching the original firmware's maximum for any grid size), all pixels are automatically and uniformly dimmed to stay within safe limits.
 - `grid_led(x, y, z)` on an overridden pixel clears its override, reverting it to global tint behavior.
 - `grid_led_all(z)` clears all overrides across the entire grid.
 - Scripts that never call `grid_led_rgb` behave identically to before.

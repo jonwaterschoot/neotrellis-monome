@@ -116,10 +116,36 @@ static inline uint32_t level_to_color(uint8_t val) {
 }
 
 static void sendLeds_iii() {
+    uint32_t total_requested = 0;
+    static uint32_t colors[NUM_ROWS * NUM_COLS];
+
+    // Pass 1: Calculate requested colors and total brightness
     for (int i = 0; i < NUM_ROWS * NUM_COLS; i++) {
-        uint32_t color = px_override[i] ? px_rgb[i] : level_to_color(local_leds[i]);
-        trellis.setPixelColor(i, color);
+        uint32_t c = px_override[i] ? px_rgb[i] : level_to_color(local_leds[i]);
+        colors[i] = c;
+        total_requested += ((c >> 16) & 0xFF) + ((c >> 8) & 0xFF) + (c & 0xFF);
     }
+
+    // Pass 2: Calculate scale and send to hardware
+    // max_safe matches original firmware worst-case: all pixels at level 15 white tint.
+    uint32_t max_safe = (uint32_t)NUM_ROWS * NUM_COLS * (gammaTable[15] * gammaAdj) * 3;
+    
+    if (total_requested > max_safe) {
+        // Use fixed-point scaling (shifted 16 bits) for efficiency
+        uint32_t scale_fp = (max_safe << 16) / total_requested;
+        for (int i = 0; i < NUM_ROWS * NUM_COLS; i++) {
+            uint32_t c = colors[i];
+            uint8_t r = (uint8_t)(((c >> 16) & 0xFF) * scale_fp >> 16);
+            uint8_t g = (uint8_t)(((c >> 8) & 0xFF) * scale_fp >> 16);
+            uint8_t b = (uint8_t)((c & 0xFF) * scale_fp >> 16);
+            trellis.setPixelColor(i, ((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
+        }
+    } else {
+        for (int i = 0; i < NUM_ROWS * NUM_COLS; i++) {
+            trellis.setPixelColor(i, colors[i]);
+        }
+    }
+    
     trellis.show();
 }
 
