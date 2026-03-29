@@ -6,6 +6,7 @@ Adds a per-pixel RGB Lua function alongside the existing `grid_color()`, so scri
 
 ```lua
 grid_led_rgb(x, y, r, g, b)   -- x, y: 1-based; r, g, b: 0–255
+grid_color_intensity(z)       -- z: 0–15 master brightness for RGB overrides
 grid_refresh()
 ```
 
@@ -14,10 +15,17 @@ Existing functions are unchanged and fully backward-compatible.
 ## Behavior
 
 - `grid_led_rgb(x, y, r, g, b)` sets a per-pixel RGB override. On the next `grid_refresh()` the pixel displays that exact color.
+- `grid_color_intensity(z)` sets a master brightness (0–15) specifically for all `grid_led_rgb` overrides. This allows you to scale the brightness of your color scripts independently of the standard grid intensity.
 - **Power Safety**: To prevent power brown-outs, the firmware includes a **Global Power Limiter**. If the total requested brightness of the entire grid exceeds the safe USB power budget (matching the original firmware's maximum for any grid size), all pixels are automatically and uniformly dimmed to stay within safe limits.
 - `grid_led(x, y, z)` on an overridden pixel clears its override, reverting it to global tint behavior.
 - `grid_led_all(z)` clears all overrides across the entire grid.
 - Scripts that never call `grid_led_rgb` behave identically to before.
+
+## Hardware Limitations
+
+Due to the nature of 8-bit LED PWM and physical differences in LED efficiency:
+- **Low Brightness Consistency**: At very low intensities (master brightness levels 1–3), some color tints may shift slightly. For example, Orange/Amber might appear redder, and Greenish tints might appear greener. 
+- **Minimum Signal**: The firmware includes a "Minimum Signal Guarantee" that prevents individual color channels from turning off completely if they are part of a tint, but the hardware's smallest step may still be brighter for one color than another.
 
 ## Example
 
@@ -35,16 +43,23 @@ grid_led_rgb(2, 1, 0, 255, 0)   -- pixel (2,1) overrides to pure green
 grid_refresh()
 ```
 
-## Using in portable scripts
+## Compatibility & Best Practices
 
-`grid_color` and `grid_led_rgb` are not available on regular iii devices. To write scripts that run on both without errors, guard the calls with a nil check:
+To ensure your scripts run on both this firmware and original `iii` devices (which lack these functions), always check if the function exists before calling it. This is the **preferred way** to maximize compatibility.
 
 ```lua
-if grid_color then grid_color(250, 80, 10) end
-if grid_led_rgb then grid_led_rgb(x, y, 255, 0, 0) end
+-- Recommended way to set master brightness safely:
+if grid_color_intensity then grid_color_intensity(12) end -- Set to 75% brightness
+
+-- Recommended way to set a pixel color safely:
+if grid_led_rgb then 
+    grid_led_rgb(x, y, 255, 128, 0) -- Orange
+else
+    grid_led(x, y, 15) -- Fallback to monochromatic white/amber
+end
 ```
 
-On a regular iii device the functions will be `nil` and the block is skipped. On this firmware they are registered globals and the call proceeds normally.
+On a standard `iii` device, these `nil` checks will evaluate to false, and the block will be safely skipped.
 
 ## Files changed
 

@@ -108,41 +108,83 @@ static uint8_t led_r = R;
 static uint8_t led_g = G;
 static uint8_t led_b = B;
 
+static uint8_t px_gain = 255;
+extern "C" void device_color_intensity(int z) {
+    if (z > 15) z = 15;
+    if (z < 0) z = 0;
+    px_gain = (uint8_t)((z * 255) / 15);
+    grid_dirty = true;
+}
+
 static inline uint32_t level_to_color(uint8_t val) {
     uint8_t gval = (uint8_t)((uint16_t)gammaTable[val] * gammaAdj);
-    return (((uint32_t)((uint16_t)gval * led_r) / 256) << 16)
-         | (((uint32_t)((uint16_t)gval * led_g) / 256) << 8)
-         |  ((uint32_t)((uint16_t)gval * led_b) / 256);
+    if (gval == 0) return 0;
+
+    auto calc = [gval](uint8_t tint) -> uint32_t {
+        if (tint == 0) return 0;
+        uint32_t out = ((uint32_t)gval * tint + 128) >> 8;
+        return (out > 0) ? out : 1;
+    };
+
+    return (calc(led_r) << 16) | (calc(led_g) << 8) | calc(led_b);
 }
 
 static void sendLeds_iii() {
     uint32_t total_requested = 0;
     static uint32_t colors[NUM_ROWS * NUM_COLS];
 
-    // Pass 1: Calculate requested colors and total brightness
-    for (int i = 0; i < NUM_ROWS * NUM_COLS; i++) {
-        uint32_t c = px_override[i] ? px_rgb[i] : level_to_color(local_leds[i]);
-        colors[i] = c;
-        total_requested += ((c >> 16) & 0xFF) + ((c >> 8) & 0xFF) + (c & 0xFF);
+    // Pass 1: Calculate requested colors (applying global RGB gain) and total brightness
+    for (int y = 0; y < NUM_ROWS; y++) {
+        for (int x = 0; x < NUM_COLS; x++) {
+            int i = y * NUM_COLS + x;
+            uint32_t c;
+            if (px_override[i]) {
+                // Apply master RGB gain with rounding and minimum signal guarantee (+128)
+            auto apply_gain = [](uint8_t c8, uint8_t gain) -> uint32_t {
+                if (c8 == 0 || gain == 0) return 0;
+                uint32_t out = ((uint32_t)c8 * gain + 128) >> 8;
+                return (out > 0) ? out : 1;
+            };
+            uint32_t r = apply_gain((px_rgb[i] >> 16) & 0xFF, px_gain);
+            uint32_t g = apply_gain((px_rgb[i] >> 8)  & 0xFF, px_gain);
+            uint32_t b = apply_gain( px_rgb[i]        & 0xFF, px_gain);
+            c = (r << 16) | (g << 8) | b;
+            } else {
+                c = level_to_color(local_leds[i]);
+            }
+            colors[i] = c;
+            total_requested += ((c >> 16) & 0xFF) + ((c >> 8) & 0xFF) + (c & 0xFF);
+        }
     }
 
-    // Pass 2: Calculate scale and send to hardware
+    // Pass 2: Calculate scale based on hardware power limit and send to hardware using (x, y) mapping
     // max_safe matches original firmware worst-case: all pixels at level 15 white tint.
     uint32_t max_safe = (uint32_t)NUM_ROWS * NUM_COLS * (gammaTable[15] * gammaAdj) * 3;
     
-    if (total_requested > max_safe) {
-        // Use fixed-point scaling (shifted 16 bits) for efficiency
+    if (total_requested > max_safe && total_requested > 0) {
+        // Use fixed-point scaling (shifted 16 bits) with rounding and min signal guarantee (+32768)
         uint32_t scale_fp = (max_safe << 16) / total_requested;
-        for (int i = 0; i < NUM_ROWS * NUM_COLS; i++) {
-            uint32_t c = colors[i];
-            uint8_t r = (uint8_t)(((c >> 16) & 0xFF) * scale_fp >> 16);
-            uint8_t g = (uint8_t)(((c >> 8) & 0xFF) * scale_fp >> 16);
-            uint8_t b = (uint8_t)((c & 0xFF) * scale_fp >> 16);
-            trellis.setPixelColor(i, ((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
+        auto apply_scale = [scale_fp](uint8_t c8) -> uint32_t {
+            if (c8 == 0 || scale_fp == 0) return 0;
+            uint32_t out = ((uint32_t)c8 * scale_fp + 32768) >> 16;
+            return (out > 0) ? out : 1;
+        };
+        for (int y = 0; y < NUM_ROWS; y++) {
+            for (int x = 0; x < NUM_COLS; x++) {
+                int i = y * NUM_COLS + x;
+                uint32_t c = colors[i];
+                uint32_t r = apply_scale((c >> 16) & 0xFF);
+                uint32_t g = apply_scale((c >> 8)  & 0xFF);
+                uint32_t b = apply_scale( c         & 0xFF);
+                trellis.setPixelColor(x, y, (r << 16) | (g << 8) | b);
+            }
         }
     } else {
-        for (int i = 0; i < NUM_ROWS * NUM_COLS; i++) {
-            trellis.setPixelColor(i, colors[i]);
+        for (int y = 0; y < NUM_ROWS; y++) {
+            for (int x = 0; x < NUM_COLS; x++) {
+                int i = y * NUM_COLS + x;
+                trellis.setPixelColor(x, y, colors[i]);
+            }
         }
     }
     
@@ -151,12 +193,15 @@ static void sendLeds_iii() {
 
 static void sendLeds_monome() {
     bool dirty = false;
-    for (int i = 0; i < NUM_ROWS * NUM_COLS; i++) {
-        uint8_t val = mdp.leds[i];
-        if (val != (uint8_t)prevLedBuffer[i]) {
-            trellis.setPixelColor(i, level_to_color(val));
-            prevLedBuffer[i] = val;
-            dirty = true;
+    for (int y = 0; y < NUM_ROWS; y++) {
+        for (int x = 0; x < NUM_COLS; x++) {
+            int i = y * NUM_COLS + x;
+            uint8_t val = mdp.leds[i];
+            if (val != (uint8_t)prevLedBuffer[i]) {
+                trellis.setPixelColor(x, y, level_to_color(val));
+                prevLedBuffer[i] = val;
+                dirty = true;
+            }
         }
     }
     if (dirty) trellis.show();
