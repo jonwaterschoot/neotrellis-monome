@@ -81,6 +81,16 @@ static int l_grid_color(lua_State *l) {
     return 0;
 }
 
+static int l_grid_led_rgb(lua_State *l) {
+    int x = (int)lua_tointeger(l, 1) - 1;
+    int y = (int)lua_tointeger(l, 2) - 1;
+    int r = (int)lua_tointeger(l, 3);
+    int g = (int)lua_tointeger(l, 4);
+    int b = (int)lua_tointeger(l, 5);
+    device_led_rgb_set(x, y, r, g, b);
+    return 0;
+}
+
 static int l_grid_refresh(lua_State *l) {
     (void)l;
     device_mark_dirty();
@@ -103,6 +113,7 @@ static const luaL_Reg device_lib[] = {
     {"grid_led",       l_grid_led},
     {"grid_led_get",   l_grid_led_get},
     {"grid_led_all",   l_grid_led_all},
+    {"grid_led_rgb",   l_grid_led_rgb},
     {"grid_intensity", l_grid_intensity},
     {"grid_color",     l_grid_color},
     {"grid_refresh",   l_grid_refresh},

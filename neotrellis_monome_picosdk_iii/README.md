@@ -125,10 +125,16 @@ See https://github.com/monome/iii for documentation.
 
 The `diii` REPL tool is hosted at https://monome.org/diii  
 
-The neotrellis build includes a custom lua function to change the entire grid color (but not individual pixel colors). 
+The neotrellis build includes custom lua functions to change LED colors.
 
-You can use this in scripts as follows. The if statement is there to avoid errors on regular iii devices.  
+`grid_color(r, g, b)` sets a global tint applied to all pixels. You can use this in scripts as follows. The if statement is there to avoid errors on regular iii devices.
 
 ```if grid_color then grid_color(250,80,10) end```
 
-Please don't bother monome or the lines forum with regards to this particular feature.  
+`grid_led_rgb(x, y, r, g, b)` sets a true per-pixel RGB color (0–255 per channel), bypassing the global tint. This allows multicolor scripts without any multiplexing or constant refresh. Use the same if guard:
+
+```if grid_led_rgb then grid_led_rgb(x, y, 255, 0, 0) end```
+
+See [grid_led_rgb.md](grid_led_rgb.md) for full details, behavior notes, and examples.
+
+Please don't bother monome or the lines forum with regards to these particular features.

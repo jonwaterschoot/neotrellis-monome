@@ -75,6 +75,11 @@ static uint8_t local_leds[NUM_ROWS * NUM_COLS];
 static uint8_t mmap[NUM_ROWS * NUM_COLS];
 static bool    grid_dirty = false;
 
+// Per-pixel RGB override. When px_override[i] is true, px_rgb[i] is used
+// directly instead of the global tint × brightness calculation.
+static bool     px_override[NUM_ROWS * NUM_COLS];
+static uint32_t px_rgb[NUM_ROWS * NUM_COLS];
+
 // ---------------------------------------------------------------------------
 // Key event buffer — populated by keyCallback, drained in device_task()
 // ---------------------------------------------------------------------------
@@ -112,7 +117,8 @@ static inline uint32_t level_to_color(uint8_t val) {
 
 static void sendLeds_iii() {
     for (int i = 0; i < NUM_ROWS * NUM_COLS; i++) {
-        trellis.setPixelColor(i, level_to_color(local_leds[i]));
+        uint32_t color = px_override[i] ? px_rgb[i] : level_to_color(local_leds[i]);
+        trellis.setPixelColor(i, color);
     }
     trellis.show();
 }
@@ -246,6 +252,8 @@ extern "C" void device_init() {
     memset(local_leds,   0, sizeof(local_leds));
     memset(mmap,         0, sizeof(mmap));
     memset(prevLedBuffer, 0, sizeof(prevLedBuffer));
+    memset(px_override,  0, sizeof(px_override));
+    memset(px_rgb,       0, sizeof(px_rgb));
     sendLeds_iii();
 
     gpio_put(LED_PIN, 0);
@@ -306,8 +314,9 @@ extern "C" void device_led_set(int x, int y, int z, int rel) {
     int idx = y * NUM_COLS + x;
     int8_t z8 = (int8_t)(rel ? clamp(z + (int)mmap[idx], 0, 15)
                               : clamp(z, 0, 15));
-    local_leds[idx] = (uint8_t)z8;
-    mmap[idx]       = (uint8_t)z8;
+    local_leds[idx]  = (uint8_t)z8;
+    mmap[idx]        = (uint8_t)z8;
+    px_override[idx] = false;
     grid_dirty = true;
 }
 
@@ -329,6 +338,7 @@ extern "C" void device_led_all(int z, int rel) {
         memset(mmap,       z8, sizeof(mmap));
         memset(local_leds, z8, sizeof(local_leds));
     }
+    memset(px_override, 0, sizeof(px_override));
     grid_dirty = true;
 }
 
@@ -340,6 +350,17 @@ extern "C" void device_intensity(int z) {
             trellis_array[yi][xi].pixels.setBrightness(brightness);
         }
     }
+    grid_dirty = true;
+}
+
+extern "C" void device_led_rgb_set(int x, int y, int r, int g, int b) {
+    if (x < 0 || x >= NUM_COLS || y < 0 || y >= NUM_ROWS) return;
+    r = r < 0 ? 0 : (r > 255 ? 255 : r);
+    g = g < 0 ? 0 : (g > 255 ? 255 : g);
+    b = b < 0 ? 0 : (b > 255 ? 255 : b);
+    int idx = y * NUM_COLS + x;
+    px_rgb[idx]      = ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+    px_override[idx] = true;
     grid_dirty = true;
 }
 
@@ -363,7 +384,9 @@ static const char *device_help_str =
     "  grid_led(x,y,z,rel)\n"
     "  grid_led_get(x,y)\n"
     "  grid_led_all(z,rel)\n"
+    "  grid_led_rgb(x,y,r,g,b)\n"
     "  grid_intensity(z)\n"
+    "  grid_color(r,g,b)\n"
     "  grid_refresh()\n"
     "  grid_size_x()\n"
     "  grid_size_y()\n";
