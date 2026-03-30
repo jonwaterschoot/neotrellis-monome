@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serpentine Seqr — Browser Emulator</title>
+<style>
+:root {
+  --bg: #050505; --grid-bg: #0a0a0a; --pad-empty: #1a1a1a;
+  --pad-border: #2a2a2a; --text: #e2e8f0; --accent: #facc15;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  display: flex; flex-direction: column; align-items: center;
+  min-height: 100vh; padding: 20px 0 60px; overflow-x: hidden;
+}
+h1 { font-weight: 300; letter-spacing: 3px; font-size: 20px; color: #e2e8f0; }
+.subtitle { color: #64748b; font-size: 12px; letter-spacing: 1px; margin-top: 4px; }
+
+/* STATUS BAR */
+.status-bar {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center;
+  margin: 14px 0; padding: 10px 20px;
+  background: rgba(255,255,255,0.03); border: 1px solid #1f2937; border-radius: 12px;
+  font-size: 12px; color: #94a3b8;
+}
+.status-item { display: flex; align-items: center; gap: 6px; }
+.status-val { color: #f1f5f9; font-weight: 600; font-variant-numeric: tabular-nums; }
+.midi-dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
+.midi-dot.connected { background: #22c55e; }
+select {
+  background: #111; border: 1px solid #333; color: #e2e8f0;
+  padding: 2px 6px; border-radius: 6px; font-size: 11px; cursor: pointer;
+}
+
+/* GRID SECTION */
+.grids-section {
+  display: flex; flex-direction: column; gap: 24px; align-items: center; width: 100%;
+}
+.grid-panel {
+  background: var(--grid-bg); padding: 20px 24px 16px;
+  border-radius: 16px; border: 1px solid #1a1a1a;
+  box-shadow: 0 30px 60px -10px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04);
+  position: relative;
+}
+.grid-panel h2 {
+  text-align: center; font-size: 11px; letter-spacing: 1.5px;
+  text-transform: uppercase; color: #475569; font-weight: 600; margin-bottom: 14px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(16, clamp(22px, 2.1vw, 32px));
+  grid-template-rows: repeat(8, clamp(22px, 2.1vw, 32px));
+  gap: clamp(4px, 0.5vw, 8px);
+}
+.pad {
+  background: var(--pad-empty); border: 1px solid var(--pad-border);
+  border-radius: 3px; cursor: pointer; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 7px; font-weight: 700; color: rgba(255,255,255,0.5);
+  user-select: none; transition: background 60ms linear, box-shadow 60ms linear;
+}
+.pad:hover { filter: brightness(1.25); }
+.pad.game-pad { cursor: crosshair; }
+
+/* HINT PANEL */
+.hints {
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+  margin: 10px 0 4px; font-size: 11px; color: #475569;
+}
+.hint-key {
+  background: #111; border: 1px solid #2a2a2a; border-radius: 5px;
+  padding: 2px 7px; color: #94a3b8; font-family: monospace;
+}
+
+/* SYNTH CONTROLS */
+.synth-controls {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;
+  margin: 6px 0; font-size: 12px; color: #64748b;
+}
+.synth-controls label { display: flex; align-items: center; gap: 6px; }
+input[type=range] { width: 80px; accent-color: #facc15; cursor: pointer; }
+
+/* DOCS TOGGLE */
+.docs-toggle {
+  margin-top: 40px; padding: 10px 24px; background: none;
+  border: 1px solid #2a2a2a; border-radius: 8px; color: #64748b;
+  cursor: pointer; font-size: 12px; letter-spacing: 1px; transition: all 0.2s;
+}
+.docs-toggle:hover { border-color: #444; color: #94a3b8; }
+.docs-section {
+  display: none; width: 100%; max-width: 820px; margin-top: 20px;
+  padding: 30px; background: var(--grid-bg); border-radius: 14px;
+  border: 1px solid #1a1a1a; font-size: 13px; color: #64748b; line-height: 1.7;
+}
+.docs-section.open { display: block; }
+.docs-section h2 { color: #e2e8f0; font-weight: 300; font-size: 20px; margin-bottom: 16px; border-bottom: 1px solid #222; padding-bottom: 12px; }
+.docs-section h4 { color: #cbd5e1; font-size: 14px; margin: 20px 0 8px; }
+.docs-section ul { padding-left: 18px; }
+.docs-section li { margin-bottom: 8px; }
+.docs-section strong { color: #e2e8f0; }
+</style>
+</head>
+<body>
+
+<div style="text-align:center;margin-bottom:6px">
+  <h1>SERPENTINE SEQR</h1>
+  <p class="subtitle">Browser Emulator — Arrow Keys to Steer · Tab = Settings Toggle</p>
+</div>
+
+<div class="status-bar">
+  <div class="status-item"><span class="midi-dot" id="midi-dot"></span><span id="midi-status">No MIDI</span>
+    <select id="midi-select"><option value="">— MIDI Output —</option></select>
+  </div>
+  <div class="status-item">BPM <span class="status-val" id="st-bpm">120</span></div>
+  <div class="status-item">Scale <span class="status-val" id="st-scale">PMA</span></div>
+  <div class="status-item">Arp <span class="status-val" id="st-arp">ORD</span></div>
+  <div class="status-item">Auto <span class="status-val" id="st-auto">NON</span></div>
+  <div class="status-item">Snake <span class="status-val" id="st-snake">4</span></div>
+  <div class="status-item" id="pause-indicator" style="display:none">
+    <span style="color:#facc15">⏸</span> <span id="pause-label">Settings Open — Game Paused</span>
+  </div>
+</div>
+
+<div class="synth-controls">
+  <label>Volume <input type="range" id="vol-slider" min="0" max="100" value="70"></label>
+  <label>Attack <input type="range" id="atk-slider" min="0" max="100" value="5"></label>
+  <label>Release <input type="range" id="rel-slider" min="10" max="200" value="80"></label>
+  <span style="color:#334155">Web Audio Synth · MIDI outputs above</span>
+</div>
+
+<div class="hints">
+  <span><span class="hint-key">↑↓←→</span> Steer</span>
+  <span><span class="hint-key">Tab</span> Settings</span>
+  <span><span class="hint-key">Space</span> Sticky Settings</span>
+  <span><span class="hint-key">1</span>/<span class="hint-key">2</span> BPM -10/-1</span>
+  <span><span class="hint-key">3</span>/<span class="hint-key">4</span> BPM +1/+10</span>
+  <span><span class="hint-key">A</span> Auto Mode</span>
+</div>
+
+<div class="grids-section">
+  <div class="grid-panel">
+    <h2>Settings View — Click pads to configure</h2>
+    <div class="grid" id="alt-grid"></div>
+  </div>
+  <div class="grid-panel">
+    <h2>Live Game — Click grid to steer · D-PAD bottom-right</h2>
+    <div class="grid" id="sim-grid"></div>
+  </div>
+</div>
+
+<button class="docs-toggle" onclick="this.nextElementSibling.classList.toggle('open')">▾ Component Documentation</button>
+<div class="docs-section">
+  <h2>Serpentine Sequencer: Component Reference</h2>
+  <h4>Settings View Controls</h4>
+  <ul>
+    <li><strong>Row 1 (cols 1–8):</strong> Fruit spawn count slider — each step = 2 fruits.</li>
+    <li><strong>Row 1 (cols 11–16):</strong> Fruit type toggles — R, B, Y, C, O, P.</li>
+    <li><strong>Row 2 (cols 1–8):</strong> Arpeggio lifespan slider.</li>
+    <li><strong>Row 2 (cols 9–16):</strong> Arpeggio pool max capacity.</li>
+    <li><strong>Row 3, col 1:</strong> Autopilot mode (NON→SEM→AUT).</li>
+    <li><strong>Row 3, col 3:</strong> Arp playback order (ORD→RND→UP→DWN).</li>
+    <li><strong>Row 3, cols 10–13:</strong> BPM -10, -1, +1, +10.</li>
+    <li><strong>Row 3, col 15:</strong> Master brightness step.</li>
+    <li><strong>Row 3, col 16:</strong> Monochrome tint cycle.</li>
+    <li><strong>Row 4 (cols 1–7):</strong> Scale selection (MAJ MIN PMA PMI DOR LYD CUS).</li>
+    <li><strong>Rows 6–7 (cols 1–7):</strong> Root note keyboard.</li>
+    <li><strong>Row 8, col 1 / Tab key:</strong> ALT toggle — pause game &amp; view settings.</li>
+  </ul>
+  <h4>Live Game Controls</h4>
+  <ul>
+    <li><strong>Arrow keys:</strong> Steer the snake.</li>
+    <li><strong>Click game grid:</strong> Point-to-go (SEM auto), or steer by click direction.</li>
+    <li><strong>D-PAD pads (15,7 / 14,8 / 15,8 / 16,8):</strong> Hardware directional controls.</li>
+    <li><strong>Fruit colours:</strong> Red = shrink+arp, Blue = grow+arp, Yellow = slow+arp, Cyan = chord, Orange = rare arp, Purple = echo.</li>
+  </ul>
+</div>
+
+<script>
+// ─── FONT ───────────────────────────────────────────────────────────────────
+const FONT = {
+  "0":0x75557,"1":0x22222,"2":0x71747,"3":0x71717,"4":0x55711,"5":0x74717,
+  "6":0x74757,"7":0x71111,"8":0x75757,"9":0x75711,"A":0x75755,"C":0x74447,
+  "D":0x65556,"E":0x74747,"I":0x72227,"J":0x71153,"L":0x44447,"M":0x57555,
+  "N":0x75555,"O":0x75557,"P":0x75744,"R":0x75765,"S":0x74717,"T":0x72222,
+  "U":0x55557,"W":0x55575,"Y":0x55222," ":0x00000
+};
+
+// ─── AUDIO ───────────────────────────────────────────────────────────────────
+let audioCtx = null, masterGain = null;
+const activeNodes = new Map();
+
+function ensureAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.7;
+  masterGain.connect(audioCtx.destination);
+}
+
+function synthOn(note, vel) {
+  ensureAudio();
+  synthOff(note);
+  const freq = 440 * Math.pow(2, (note - 69) / 12);
+  const atk = parseFloat(document.getElementById('atk-slider').value) / 1000 * 0.2 + 0.005;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = 'triangle'; osc.frequency.value = freq;
+  g.gain.setValueAtTime(0, audioCtx.currentTime);
+  g.gain.linearRampToValueAtTime((vel/127)*0.4, audioCtx.currentTime + atk);
+  g.gain.exponentialRampToValueAtTime((vel/127)*0.15, audioCtx.currentTime + atk + 0.08);
+  osc.connect(g); g.connect(masterGain); osc.start();
+  const tid = setTimeout(() => synthOff(note), 3000);
+  activeNodes.set(note, {osc, g, tid});
+}
+
+function synthOff(note) {
+  const n = activeNodes.get(note);
+  if (!n) return;
+  clearTimeout(n.tid);
+  const rel = parseFloat(document.getElementById('rel-slider').value) / 1000 * 0.3 + 0.05;
+  n.g.gain.cancelScheduledValues(audioCtx.currentTime);
+  n.g.gain.setValueAtTime(Math.max(0.0001, n.g.gain.value), audioCtx.currentTime);
+  n.g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + rel);
+  setTimeout(() => { try{n.osc.stop();}catch(e){} n.osc.disconnect(); n.g.disconnect(); }, (rel+0.1)*1000);
+  activeNodes.delete(note);
+}
+
+// MIDI
+let midiOut = null;
+document.getElementById('vol-slider').oninput = e => { if(masterGain) masterGain.gain.value = e.target.value/100; };
+
+navigator.requestMIDIAccess && navigator.requestMIDIAccess().then(access => {
+  const sel = document.getElementById('midi-select');
+  function populatePorts() {
+    sel.innerHTML = '<option value="">— MIDI Output —</option>';
+    access.outputs.forEach((o, id) => {
+      const opt = document.createElement('option'); opt.value = id; opt.textContent = o.name; sel.appendChild(opt);
+    });
+  }
+  populatePorts();
+  access.onstatechange = populatePorts;
+  sel.onchange = () => {
+    midiOut = access.outputs.get(sel.value) || null;
+    document.getElementById('midi-dot').className = 'midi-dot' + (midiOut ? ' connected' : '');
+    document.getElementById('midi-status').textContent = midiOut ? midiOut.name : 'No MIDI';
+  };
+}).catch(() => {});
+
+function noteOn(note, vel) {
+  if (midiOut) midiOut.send([0x90, note & 0x7F, vel & 0x7F]);
+  synthOn(note, vel);
+}
+function noteOff(note) {
+  if (midiOut) midiOut.send([0x80, note & 0x7F, 0]);
+  synthOff(note);
+}
+
+// ─── GAME STATE ───────────────────────────────────────────────────────────────
+const W = 16, H = 8, SNAKE_MAX = W*H, ECHO_MAX = 16, COLLECTED_MAX = 128, BFS_SZ = W*H;
+
+let bpm = 120, temp_slow_steps = 0, need_interval_update = false, fast_tick = 0;
+let gameInterval = null;
+
+const SNAKE_BUF = Array.from({length:SNAKE_MAX}, ()=>({x:0,y:0}));
+let snake_head=1, snake_len=0, snk_len=4;
+const dir={x:1,y:0}, queued={x:1,y:0};
+
+let death_phase=0, death_col=1, last_death_note_idx=0;
+let on_note=null, on_chord=false;
+const chord_notes=[0,0,0];
+
+const FRUIT_COL=[{r:220,g:40,b:20},{r:80,g:120,b:240},{r:240,g:200,b:20},{r:40,g:220,b:200},{r:255,g:140,b:0},{r:200,g:40,b:240}];
+const FRUIT_W=[20,40,20,20,15,10];
+let fruit_enabled=[true,true,true,true,true,true], num_fruits=3;
+let fruits=[];
+
+const arp_pool=Array.from({length:8},()=>({note:0,x:0,y:0,kind:0}));
+let arp_pool_len=0, arp_pool_max=8, arp_mode=1, arp_lifespan=32, arp_steps_remaining=0;
+let arp_trigger_chance=1.0, arp_first_note=false, seq_i=1;
+const arp_labels=["ORD","RND","UP","DWN"];
+const SORT_BUF=Array.from({length:8},()=>({note:0,kind:0}));
+
+const collected_notes=Array.from({length:COLLECTED_MAX},()=>({x:0,y:0}));
+let collected_len=0;
+
+const ECHO_BUF=Array.from({length:ECHO_MAX},()=>({active:false,note:0,vel:0,ticks_left:0,current_interval:0,bounces:0}));
+const halos=Array.from({length:W*H},()=>({state:0,life:0}));
+
+const SCALE_NAMES=["MAJ","MIN","PMA","PMI","DOR","LYD","CUS"];
+const SCALE_MASKS=[[0,2,4,5,7,9,11],[0,2,3,5,7,8,10],[0,2,4,7,9],[0,3,5,7,10],[0,2,3,5,7,9,10],[0,2,4,6,7,9,11]];
+let scale_mode=3, root_note=0;
+let custom_scale=[true,false,true,false,true,false,false,true,false,true,false,false];
+let SCALE=new Array(12).fill(0), SCALE_LEN=5;
+const BASE=48;
+const KB_MAP={7:{1:0,2:2,3:4,4:5,5:7,6:9,7:11},6:{2:1,3:3,5:6,6:8,7:10}};
+
+let auto_mode=0;
+const auto_target={x:0,y:0};
+let auto_has_target=false;
+
+let alt_held=false, menu_sticky=false, last_alt_tap=0;
+let master_bright=12, alt_disp_timer=0, alt_disp_mode="BPM";
+
+let mono_mode=0;
+const MONO_TINTS=[{r:0.14,g:1.0,b:0.79},{r:1.0,g:0.20,b:0.90},{r:0.80,g:0.80,b:0.80},{r:1.0,g:0.63,b:0.08},{r:1.0,g:1.0,b:1.0}];
+
+const DPAD=[{x:15,y:7,dx:0,dy:-1},{x:14,y:8,dx:-1,dy:0},{x:15,y:8,dx:0,dy:1},{x:16,y:8,dx:1,dy:0}];
+const DIR_DX=[1,-1,0,0], DIR_DY=[0,0,1,-1];
+const BFS_S=new Int32Array(BFS_SZ), BFS_Q=new Int32Array(BFS_SZ), BFS_T=new Uint8Array(BFS_SZ);
+
+// ─── PAD CACHE ───────────────────────────────────────────────────────────────
+const altPads=[], simPads=[], altGrid=document.getElementById('alt-grid'), simGrid=document.getElementById('sim-grid');
+for(let y=1;y<=H;y++){
+  altPads[y]={}; simPads[y]={};
+  for(let x=1;x<=W;x++){
+    const a=document.createElement('div'); a.className='pad'; altGrid.appendChild(a); altPads[y][x]=a;
+    const s=document.createElement('div'); s.className='pad game-pad'; simGrid.appendChild(s); simPads[y][x]=s;
+    ((cx,cy)=>{
+      a.addEventListener('click',()=>handleAltClick(cx,cy));
+      s.addEventListener('click',()=>handleSimClick(cx,cy));
+    })(x,y);
+  }
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+function wrap(v,lo,hi){const r=hi-lo+1;return lo+(((v-lo)%r)+r)%r;}
+function snk(i){return SNAKE_BUF[(snake_head+i-2+SNAKE_MAX)%SNAKE_MAX];}
+function isDpad(x,y){return DPAD.some(d=>d.x===x&&d.y===y);}
+
+function occupied(x,y){
+  for(let i=1;i<=snake_len;i++){const s=snk(i);if(s.x===x&&s.y===y)return true;}
+  for(const f of fruits){if(f.x===x&&f.y===y)return true;}
+  return (x===1&&y===8)||isDpad(x,y);
+}
+
+function generateScale(){
+  SCALE_LEN=0;
+  if(scale_mode===7){
+    for(let i=0;i<12;i++){if(custom_scale[i]){SCALE[SCALE_LEN++]=i;}}
+    if(SCALE_LEN===0){SCALE[0]=0;SCALE_LEN=1;custom_scale[0]=true;}
+  } else {
+    const mask=SCALE_MASKS[scale_mode-1];
+    for(let i=0;i<mask.length;i++){SCALE[SCALE_LEN++]=(mask[i]+root_note)%12;}
+  }
+}
+
+function degreeNote(deg,oct){
+  const d=((deg-1)%SCALE_LEN), os=Math.floor((deg-1)/SCALE_LEN);
+  return Math.max(36,Math.min(96, BASE+SCALE[d]+(oct+os)*12));
+}
+function noteFor(x,y){
+  const oct=Math.floor((H-y)/4)+Math.floor((x-1)/SCALE_LEN)%2;
+  return degreeNote(x,oct);
+}
+
+// ─── BFS ─────────────────────────────────────────────────────────────────────
+function bfsRun(useTgt,tx,ty){
+  if(snake_len===0) return 0;
+  const hd=snk(1); const sx=hd.x, sy=hd.y;
+  BFS_S.fill(0);
+  for(let i=1;i<snake_len;i++){const s=snk(i);BFS_S[(s.y-1)*W+s.x]=5;}
+  BFS_S[(sy-1)*W+sx]=5;
+  let qi=0,qe=0;
+  for(let d=0;d<4;d++){
+    const nx=wrap(sx+DIR_DX[d],1,W), ny=wrap(sy+DIR_DY[d],1,H), k=(ny-1)*W+nx;
+    if(BFS_S[k]===0){BFS_S[k]=d+1;BFS_Q[qe++]=k;}
+  }
+  const tk=(ty-1)*W+tx;
+  while(qi<qe){
+    const ck=BFS_Q[qi++];
+    if(useTgt?BFS_T[ck]:ck===tk) return BFS_S[ck];
+    // ck is 0-indexed: ck = (y-1)*W + (x-1)
+    const cx=(ck%W)+1, cy=Math.floor(ck/W)+1;
+    const fd=BFS_S[ck];
+    for(let d=0;d<4;d++){
+      const nx=wrap(cx+DIR_DX[d],1,W), ny=wrap(cy+DIR_DY[d],1,H), k=(ny-1)*W+nx;
+      if(BFS_S[k]===0){BFS_S[k]=fd;BFS_Q[qe++]=k;}
+    }
+  }
+  return 0;
+}
+
+// ─── RENDERING ───────────────────────────────────────────────────────────────
+const simFrame=new Uint8Array(W*H*3);
+function clr(){simFrame.fill(0);}
+function spx(x,y,r,g,b){
+  if(x<1||x>W||y<1||y>H) return;
+  if(mono_mode>0){
+    const lum=r*0.299+g*0.587+b*0.114, t=MONO_TINTS[mono_mode-1];
+    r=Math.floor(lum*t.r); g=Math.floor(lum*t.g); b=Math.floor(lum*t.b);
+  }
+  const i=((y-1)*W+(x-1))*3; simFrame[i]=r; simFrame[i+1]=g; simFrame[i+2]=b;
+}
+
+function gridRefresh(){
+  const bs=master_bright/12;
+  for(let y=1;y<=H;y++) for(let x=1;x<=W;x++){
+    const i=((y-1)*W+(x-1))*3;
+    const r=Math.min(255,Math.floor(simFrame[i]*bs));
+    const g=Math.min(255,Math.floor(simFrame[i+1]*bs));
+    const b=Math.min(255,Math.floor(simFrame[i+2]*bs));
+    const p=simPads[y][x]; if(!p) continue;
+    if(r===0&&g===0&&b===0){p.style.background='#1a1a1a';p.style.boxShadow='none';p.style.borderColor='#2a2a2a';}
+    else{
+      p.style.background=`rgb(${r},${g},${b})`;
+      const lum=r*0.21+g*0.72+b*0.07;
+      p.style.boxShadow=lum>15?`0 0 ${Math.min(14,lum/8)}px rgba(${r},${g},${b},0.55)`:'none';
+      p.style.borderColor=`rgba(${r},${g},${b},0.4)`;
+    }
+  }
+}
+
+function spxA(x,y,r,g,b){
+  if(x<1||x>W||y<1||y>H) return;
+  const bs=master_bright/12;
+  r=Math.min(255,Math.floor(r*bs)); g=Math.min(255,Math.floor(g*bs)); b=Math.min(255,Math.floor(b*bs));
+  const p=altPads[y][x]; if(!p) return;
+  p.innerText='';
+  if(r===0&&g===0&&b===0){p.style.background='#1a1a1a';p.style.boxShadow='none';p.style.borderColor='#2a2a2a';}
+  else{
+    p.style.background=`rgb(${r},${g},${b})`;
+    const lum=r*0.21+g*0.72+b*0.07;
+    p.style.boxShadow=lum>15?`0 0 ${Math.min(14,lum/8)}px rgba(${r},${g},${b},0.55)`:'none';
+    p.style.borderColor=`rgba(${r},${g},${b},0.4)`;
+  }
+}
+
+function clrA(){
+  for(let y=1;y<=H;y++) for(let x=1;x<=W;x++){
+    const p=altPads[y][x]; if(!p) continue;
+    p.style.background='#1a1a1a'; p.style.boxShadow='none'; p.style.borderColor='#2a2a2a'; p.innerText='';
+  }
+}
+
+function drawCharA(x,y,ch,r,g,b,bm=1.0){
+  const hex=FONT[ch.toUpperCase()]; if(hex===undefined) return;
+  for(let row=0;row<5;row++){
+    const bits=(hex>>((4-row)*4))&0xF;
+    for(let col=0;col<3;col++){
+      if((bits&(1<<(2-col)))!==0) spxA(x+col,y+row,Math.floor(r*bm),Math.floor(g*bm),Math.floor(b*bm));
+    }
+  }
+}
+function drawLabelA(x,y,str,r,g,b,hl=2){
+  for(let i=0;i<str.length;i++) drawCharA(x+i*3,y,str[i],r,g,b,i===(hl-1)?0.2:1.0);
+}
+
+// ─── SCENE RAW ────────────────────────────────────────────────────────────────
+function drawSceneRaw(){
+  for(let hk=0;hk<W*H;hk++){
+    const h=halos[hk]; if(h.life<=0) continue;
+    const hx=(hk%W)+1, hy=Math.floor(hk/W)+1;
+    if(h.state===1){spx(hx-1,hy,10,40,50);spx(hx+1,hy,10,40,50);spx(hx,hy-1,10,40,50);spx(hx,hy+1,10,40,50);}
+    else if(h.state===2) spx(hx,hy,20,80,100);
+    spx(hx,hy,5,20,25);
+  }
+  if(auto_has_target) spx(auto_target.x,auto_target.y,200,100,15);
+  for(const f of fruits){const c=FRUIT_COL[f.kind-1];spx(f.x,f.y,c.r,c.g,c.b);}
+  spx(1,8,alt_held?232:50,alt_held?112:18,alt_held?18:5);
+  for(const d of DPAD) spx(d.x,d.y,12,12,28);
+  const n=snake_len;
+  for(let i=n;i>=2;i--){const s=snk(i);const br=Math.max(34,Math.floor((1-i/n)*187)+34);spx(s.x,s.y,Math.floor(br*0.18),br,0);}
+  if(n>0){const hd=snk(1);spx(hd.x,hd.y,95,210,28);}
+}
+
+function drawGame(){clr();drawSceneRaw();gridRefresh();}
+
+// ─── SETTINGS VIEW ────────────────────────────────────────────────────────────
+function renderAlt(){
+  clrA();
+  for(let x=1;x<=8;x++) x*2<=num_fruits?spxA(x,1,20,140,110):spxA(x,1,5,30,25);
+  for(let x=11;x<=16;x++){
+    const fi=x-10, c=FRUIT_COL[fi-1];
+    fruit_enabled[fi-1]?spxA(x,1,c.r,c.g,c.b):spxA(x,1,Math.floor(c.r*0.1),Math.floor(c.g*0.1),Math.floor(c.b*0.1));
+  }
+  for(let x=1;x<=8;x++) x<=(arp_lifespan/8)?spxA(x,2,200,40,180):spxA(x,2,40,10,35);
+  for(let x=9;x<=16;x++) (x-8)<=arp_pool_max?spxA(x,2,100,100,255):spxA(x,2,20,20,50);
+  spxA(10,3,180,20,10);spxA(11,3,200,80,20);spxA(12,3,20,200,80);spxA(13,3,10,180,20);
+  if(auto_mode===0)spxA(1,3,30,8,4);else if(auto_mode===1)spxA(1,3,130,75,10);else spxA(1,3,20,240,50);
+  spxA(3,3,240,150,20);
+  const br=Math.floor(master_bright*17); spxA(15,3,br,br,br);
+  if(mono_mode>0){const t=MONO_TINTS[mono_mode-1];spxA(16,3,Math.floor(t.r*200),Math.floor(t.g*200),Math.floor(t.b*200));}
+  else spxA(16,3,30,30,30);
+  for(let yy=6;yy<=7;yy++) for(let xx=1;xx<=7;xx++){
+    const note=KB_MAP[yy]&&KB_MAP[yy][xx];
+    if(note===undefined) continue;
+    let isRoot=false, isActive=false;
+    if(scale_mode===7){isActive=custom_scale[note];}
+    else{
+      isRoot=(note===root_note);
+      for(let i=0;i<SCALE_LEN;i++){if(SCALE[i]%12===note){isActive=true;break;}}
+    }
+    if(isRoot)spxA(xx,yy,20,100,255);else if(isActive)spxA(xx,yy,200,200,200);else spxA(xx,yy,15,15,15);
+  }
+  for(let x=1;x<=7;x++) scale_mode===x?spxA(x,4,255,255,255):spxA(x,4,40,40,40);
+  if(alt_disp_timer>0&&alt_disp_mode==="ARP"){
+    let lbl=arp_labels[arp_mode-1]; if(lbl==="UP")lbl=" UP";
+    drawLabelA(8,4,lbl,200,150,10,2);
+  } else if(alt_disp_timer>0&&alt_disp_mode==="AUTO"){
+    drawLabelA(8,4,["NON","SEM","AUT"][auto_mode],20,200,60,2);
+  } else if(alt_disp_timer>0&&alt_disp_mode==="SCA"){
+    drawLabelA(8,4,SCALE_NAMES[scale_mode-1],100,255,100,2);
+  } else {
+    drawLabelA(8,4,String(bpm).padStart(3,"0"),180,120,20,2);
+  }
+  spxA(1,8,232,112,18);
+  updateStatus();
+}
+
+// ─── FRUIT / SNAKE ────────────────────────────────────────────────────────────
+function repositionFruit(f){
+  f.x=-1;f.y=-1;
+  for(let _=0;_<100;_++){
+    const x=Math.ceil(Math.random()*W), y=Math.ceil(Math.random()*H);
+    if(!occupied(x,y)){
+      let wt=0; for(let i=0;i<6;i++) if(fruit_enabled[i]) wt+=FRUIT_W[i];
+      if(wt===0){fruit_enabled[0]=true;wt=FRUIT_W[0];}
+      let roll=Math.floor(Math.random()*wt)+1, acc=0, k=5;
+      for(let i=0;i<6;i++){if(fruit_enabled[i]){acc+=FRUIT_W[i];if(roll<=acc){k=i;break;}}}
+      f.x=x;f.y=y;f.kind=k+1; return;
+    }
+  }
+}
+function spawnFruit(){
+  if(fruits.length>=num_fruits) return;
+  const f={x:-1,y:-1,kind:0}; fruits.push(f); repositionFruit(f);
+}
+function resetSnake(){
+  snake_head=1;snake_len=4;
+  // snk(1)=SNAKE_BUF[(snake_head+0)%SNAKE_MAX]=SNAKE_BUF[0] = head
+  for(let i=0;i<4;i++){const s=SNAKE_BUF[i];s.x=10-i;s.y=4;}
+  dir.x=1;dir.y=0;queued.x=1;queued.y=0;snk_len=4;auto_has_target=false;
+}
+
+// ─── ARP ─────────────────────────────────────────────────────────────────────
+function arpAdd(note,x,y,kind){
+  if(arp_pool_len>=arp_pool_max){
+    const old=arp_pool[0];
+    for(let i=1;i<arp_pool_max;i++) arp_pool[i-1]=arp_pool[i];
+    arp_pool[arp_pool_max-1]=old; arp_pool_len=arp_pool_max;
+  } else arp_pool_len++;
+  const t=arp_pool[arp_pool_len-1]; t.note=note;t.x=x;t.y=y;t.kind=kind;
+  arp_steps_remaining=arp_lifespan; arp_first_note=true;
+  if(collected_len>=COLLECTED_MAX){
+    for(let i=1;i<COLLECTED_MAX;i++){collected_notes[i-1].x=collected_notes[i].x;collected_notes[i-1].y=collected_notes[i].y;}
+    collected_notes[COLLECTED_MAX-1].x=x;collected_notes[COLLECTED_MAX-1].y=y;
+  } else {collected_notes[collected_len].x=x;collected_notes[collected_len].y=y;collected_len++;}
+}
+
+function seqTick(){
+  if(on_note){noteOff(on_note);on_note=null;}
+  if(on_chord){for(let i=0;i<3;i++)noteOff(chord_notes[i]);on_chord=false;}
+  if(arp_pool_len===0) return;
+  if(arp_lifespan>0){if(arp_steps_remaining<=0){arp_pool_len=0;return;}arp_steps_remaining--;}
+  if(arp_first_note){arp_first_note=false;}
+  else if(arp_trigger_chance<1.0){if(Math.random()>arp_trigger_chance)return;}
+  if(arp_pool_len===0) return;
+  const n=arp_pool_len;
+  for(let i=0;i<n;i++) arp_pool[i].note=noteFor(arp_pool[i].x,arp_pool[i].y);
+  let triggered=null;
+  if(arp_mode===3||arp_mode===4){
+    for(let i=0;i<n;i++){SORT_BUF[i].note=arp_pool[i].note;SORT_BUF[i].kind=arp_pool[i].kind;}
+    for(let i=1;i<n;i++){
+      const kn=SORT_BUF[i].note,kk=SORT_BUF[i].kind; let j=i-1;
+      if(arp_mode===3){while(j>=0&&SORT_BUF[j].note>kn){SORT_BUF[j+1].note=SORT_BUF[j].note;SORT_BUF[j+1].kind=SORT_BUF[j].kind;j--;}}
+      else{while(j>=0&&SORT_BUF[j].note<kn){SORT_BUF[j+1].note=SORT_BUF[j].note;SORT_BUF[j+1].kind=SORT_BUF[j].kind;j--;}}
+      SORT_BUF[j+1].note=kn;SORT_BUF[j+1].kind=kk;
+    }
+    seq_i=seq_i%n;seq_i++;triggered=SORT_BUF[seq_i-1];
+  } else if(arp_mode===2){seq_i=Math.floor(Math.random()*n);triggered=arp_pool[seq_i];}
+  else{seq_i=seq_i%n;seq_i++;triggered=arp_pool[seq_i-1];}
+  noteOn(triggered.note,90); on_note=triggered.note;
+  if(triggered.kind===6){
+    for(let ei=0;ei<ECHO_MAX;ei++){
+      const e=ECHO_BUF[ei];
+      if(!e.active){e.active=true;e.note=triggered.note;e.vel=80;e.bounces=12+Math.floor(Math.random()*13);e.current_interval=12;e.ticks_left=12;break;}
+    }
+  }
+}
+
+// ─── DEATH ────────────────────────────────────────────────────────────────────
+function deathTick(){
+  if(death_phase===1){
+    if(on_note){noteOff(on_note);on_note=null;}
+    for(const f of fruits){
+      if(f.x===death_col){
+        for(let ei=0;ei<ECHO_MAX;ei++){
+          const e=ECHO_BUF[ei];
+          if(!e.active){e.active=true;e.note=noteFor(f.x,f.y);e.vel=90;e.bounces=8+Math.floor(Math.random()*9);e.current_interval=6+Math.floor(Math.random()*7);e.ticks_left=e.current_interval;break;}
+        }
+      }
+    }
+    clr();
+    for(let y=1;y<=H;y++) spx(death_col,y,210,90,20);
+    gridRefresh();
+    death_col++;
+    if(death_col>W){
+      if(on_note){noteOff(on_note);on_note=null;}
+      arp_pool_len=0;arp_steps_remaining=0;arp_trigger_chance=1.0;arp_first_note=false;
+      for(let h=0;h<W*H;h++){halos[h].life=0;halos[h].state=0;}
+      for(let ei=0;ei<ECHO_MAX;ei++) ECHO_BUF[ei].active=false;
+      resetSnake(); fruits=[]; while(fruits.length<num_fruits) spawnFruit();
+      death_phase=2; death_col=W; last_death_note_idx=0;
+    }
+  } else if(death_phase===2){
+    if(on_note){noteOff(on_note);on_note=null;}
+    if(collected_len>0){
+      const idx=Math.max(0,Math.min(collected_len-1,Math.ceil(collected_len*(death_col/W))-1));
+      if(idx!==last_death_note_idx){
+        const c=collected_notes[idx]; const n=noteFor(c.x,c.y);
+        noteOn(n,70); on_note=n; last_death_note_idx=idx;
+      }
+    }
+    clr(); drawSceneRaw();
+    for(let bx=1;bx<=death_col;bx++) for(let by=1;by<=H;by++) spx(bx,by,0,0,0);
+    for(let y=1;y<=H;y++) spx(death_col,y,210,90,20);
+    gridRefresh(); death_col--;
+    if(death_col<1){if(on_note){noteOff(on_note);on_note=null;}death_phase=0;collected_len=0;drawGame();}
+  }
+}
+
+// ─── GAME TICK ────────────────────────────────────────────────────────────────
+function getInterval(){return 3750/((temp_slow_steps>0?bpm/2:bpm));}
+
+function gameTick(){
+  if(alt_held) return;
+  fast_tick++;
+  for(let i=0;i<ECHO_MAX;i++){
+    const e=ECHO_BUF[i]; if(!e.active) continue;
+    e.ticks_left--;
+    if(e.ticks_left<=0){
+      noteOn(e.note,Math.floor(e.vel)); e.bounces--;
+      if(e.bounces<=0){e.active=false;}
+      else{e.vel*=0.85;e.current_interval=Math.max(1,e.current_interval*0.85);e.ticks_left=Math.max(1,Math.floor(e.current_interval));}
+    }
+  }
+  if(death_phase===1){if(fast_tick%4===0)deathTick();return;}
+  if(death_phase===2){if(fast_tick%8===0)deathTick();return;}
+  if(fast_tick%4!==0) return;
+
+  if(auto_mode===2){
+    BFS_T.fill(0); for(const f of fruits) BFS_T[(f.y-1)*W+f.x]=1;
+    const d=bfsRun(true,0,0); if(d>0){queued.x=DIR_DX[d-1];queued.y=DIR_DY[d-1];}
+  } else if(auto_mode===1&&auto_has_target){
+    const hd=snk(1);
+    if(hd.x===auto_target.x&&hd.y===auto_target.y){auto_has_target=false;}
+    else{const d=bfsRun(false,auto_target.x,auto_target.y);if(d>0){queued.x=DIR_DX[d-1];queued.y=DIR_DY[d-1];}}
+  }
+
+  if(!(queued.x===-dir.x&&dir.x!==0)&&!(queued.y===-dir.y&&dir.y!==0)){dir.x=queued.x;dir.y=queued.y;}
+  const hd=snk(1);
+  const hx=wrap(hd.x+dir.x,1,W), hy=wrap(hd.y+dir.y,1,H);
+
+  for(let i=1;i<snake_len;i++){const s=snk(i);if(s.x===hx&&s.y===hy){death_phase=1;death_col=1;return;}}
+
+  snake_head=(snake_head-2+SNAKE_MAX)%SNAKE_MAX+1;
+  const nh=SNAKE_BUF[snake_head-1]; nh.x=hx; nh.y=hy; snake_len++;
+
+  fruitLoop: for(let i=0;i<fruits.length;i++){
+    const f=fruits[i]; if(f.x!==hx||f.y!==hy) continue;
+    const pn=noteFor(hx,hy);
+    if(f.kind===1){snk_len=Math.max(2,snk_len-1);arpAdd(pn,hx,hy,f.kind);}
+    else if(f.kind===2){snk_len++;arpAdd(pn,hx,hy,f.kind);}
+    else if(f.kind===3){temp_slow_steps=16;need_interval_update=true;arpAdd(pn,hx,hy,f.kind);}
+    else if(f.kind===4){
+      const hkey=(hy-1)*W+(hx-1);
+      if(halos[hkey].life<=0){halos[hkey].state=1;halos[hkey].life=3;}
+      else{halos[hkey].state++;halos[hkey].life--;}
+      const ct=halos[hkey].state;
+      const dr=hx, or2=Math.floor((H-hy)/4)+Math.floor((hx-1)/SCALE_LEN)%2;
+      if(ct===1){chord_notes[0]=degreeNote(dr,or2);chord_notes[1]=degreeNote(dr+2,or2);chord_notes[2]=degreeNote(dr+4,or2);}
+      else if(ct===2){chord_notes[0]=degreeNote(dr,or2);chord_notes[1]=degreeNote(dr+3,or2);chord_notes[2]=degreeNote(dr+5,or2);}
+      else{chord_notes[0]=degreeNote(dr,or2);chord_notes[1]=degreeNote(dr+4,or2);chord_notes[2]=degreeNote(dr+7,or2);}
+      for(let ci=0;ci<3;ci++) chord_notes[ci]=Math.max(36,Math.min(96,chord_notes[ci]));
+      noteOn(chord_notes[0],80);noteOn(chord_notes[1],70);noteOn(chord_notes[2],60); on_chord=true;
+      if(halos[hkey].life<=0) repositionFruit(f);
+      break fruitLoop;
+    }
+    else if(f.kind===5){arp_trigger_chance=0.33;snk_len++;arpAdd(pn,hx,hy,f.kind);}
+    else if(f.kind===6){snk_len++;arpAdd(pn,hx,hy,f.kind);}
+    repositionFruit(f); break fruitLoop;
+  }
+
+  if(temp_slow_steps>0){temp_slow_steps--;if(temp_slow_steps===0)need_interval_update=true;}
+  if(need_interval_update){need_interval_update=false;restartLoop();}
+  while(snake_len>snk_len) snake_len--;
+  seqTick(); drawGame();
+  if(alt_disp_timer>0) alt_disp_timer--;
+  updateStatus();
+}
+
+function restartLoop(){
+  if(gameInterval) clearInterval(gameInterval);
+  gameInterval=setInterval(gameTick,getInterval());
+}
+
+// ─── STATUS BAR ──────────────────────────────────────────────────────────────
+function updateStatus(){
+  document.getElementById('st-bpm').textContent=bpm;
+  document.getElementById('st-scale').textContent=SCALE_NAMES[scale_mode-1];
+  document.getElementById('st-arp').textContent=arp_labels[arp_mode-1];
+  document.getElementById('st-auto').textContent=["NON","SEM","AUT"][auto_mode];
+  document.getElementById('st-snake').textContent=snake_len;
+  document.getElementById('pause-indicator').style.display=alt_held?'flex':'none';
+}
+
+// ─── INPUT: ALT GRID ─────────────────────────────────────────────────────────
+function handleAltClick(x,y){
+  ensureAudio();
+  if(x===1&&y===8){toggleAlt();return;}
+  if(y===4&&x<=7){scale_mode=x;generateScale();alt_disp_mode="SCA";alt_disp_timer=15;}
+  else if((y===6||y===7)&&x<=7){
+    const note=KB_MAP[y]&&KB_MAP[y][x];
+    if(note!==undefined){
+      if(scale_mode===7)custom_scale[note]=!custom_scale[note];
+      else root_note=note;
+      generateScale();alt_disp_mode="SCA";alt_disp_timer=15;
+    }
+  }
+  else if(y===1){
+    if(x<=8){num_fruits=Math.max(2,x*2);while(fruits.length<num_fruits)spawnFruit();while(fruits.length>num_fruits)fruits.pop();}
+    else if(x>=11&&x<=16)fruit_enabled[x-11]=!fruit_enabled[x-11];
+  }
+  else if(y===2){
+    if(x<=8)arp_lifespan=x*8;else arp_pool_max=x-8;
+    alt_disp_mode="ARP";alt_disp_timer=15;
+  }
+  else if(y===3){
+    if(x===10){bpm=Math.max(40,bpm-10);restartLoop();}
+    else if(x===11){bpm=Math.max(40,bpm-1);restartLoop();}
+    else if(x===12){bpm=Math.min(240,bpm+1);restartLoop();}
+    else if(x===13){bpm=Math.min(240,bpm+10);restartLoop();}
+    else if(x===1){auto_mode=(auto_mode+1)%3;if(auto_mode!==1)auto_has_target=false;alt_disp_mode="AUTO";alt_disp_timer=15;}
+    else if(x===3){arp_mode=(arp_mode%4)+1;alt_disp_mode="ARP";alt_disp_timer=15;}
+    else if(x===15){master_bright+=4;if(master_bright>12)master_bright=4;}
+    else if(x===16){mono_mode=(mono_mode+1)%6;}
+  }
+  renderAlt();
+}
+
+// ─── INPUT: SIM GRID ─────────────────────────────────────────────────────────
+function handleSimClick(x,y){
+  ensureAudio();
+  if(x===1&&y===8){toggleAlt();return;}
+  if(death_phase!==0) return;
+  for(const d of DPAD){if(d.x===x&&d.y===y){queued.x=d.dx;queued.y=d.dy;if(auto_mode===1)auto_has_target=false;return;}}
+  if(auto_mode===1){auto_target.x=x;auto_target.y=y;auto_has_target=true;return;}
+  if(snake_len===0) return;
+  const hd=snk(1); const dx=x-hd.x, dy=y-hd.y;
+  if(dx===0&&dy===0) return;
+  if(Math.abs(dx)>=Math.abs(dy)){queued.x=dx>0?1:-1;queued.y=0;}
+  else{queued.x=0;queued.y=dy>0?1:-1;}
+}
+
+// ─── ALT TOGGLE ──────────────────────────────────────────────────────────────
+function toggleAlt(){
+  const now=performance.now()/1000;
+  if(now-last_alt_tap<0.35) menu_sticky=!menu_sticky;
+  last_alt_tap=now;
+  // If currently held, release (unless sticky). If not held, activate.
+  if(alt_held){
+    if(!menu_sticky){alt_held=false;drawGame();}
+  } else {
+    alt_held=true;renderAlt();
+  }
+  updateStatus();
+}
+
+// ─── KEYBOARD ────────────────────────────────────────────────────────────────
+let tabDown=false;
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
+  ensureAudio();
+  if(e.key==='Tab'){e.preventDefault();if(!tabDown){tabDown=true;const now=performance.now()/1000;if(now-last_alt_tap<0.35)menu_sticky=!menu_sticky;last_alt_tap=now;alt_held=true;renderAlt();}}
+  else if(e.key===' '){e.preventDefault();menu_sticky=!menu_sticky;if(!menu_sticky){alt_held=false;drawGame();}else{alt_held=true;renderAlt();}}
+  else if(e.key==='ArrowUp'){e.preventDefault();queued.x=0;queued.y=-1;if(auto_mode===1)auto_has_target=false;}
+  else if(e.key==='ArrowDown'){e.preventDefault();queued.x=0;queued.y=1;if(auto_mode===1)auto_has_target=false;}
+  else if(e.key==='ArrowLeft'){e.preventDefault();queued.x=-1;queued.y=0;if(auto_mode===1)auto_has_target=false;}
+  else if(e.key==='ArrowRight'){e.preventDefault();queued.x=1;queued.y=0;if(auto_mode===1)auto_has_target=false;}
+  else if(e.key==='1'){bpm=Math.max(40,bpm-10);restartLoop();renderAlt();}
+  else if(e.key==='2'){bpm=Math.max(40,bpm-1);restartLoop();renderAlt();}
+  else if(e.key==='3'){bpm=Math.min(240,bpm+1);restartLoop();renderAlt();}
+  else if(e.key==='4'){bpm=Math.min(240,bpm+10);restartLoop();renderAlt();}
+  else if(e.key==='a'||e.key==='A'){auto_mode=(auto_mode+1)%3;if(auto_mode!==1)auto_has_target=false;alt_disp_mode="AUTO";alt_disp_timer=15;renderAlt();}
+});
+document.addEventListener('keyup',e=>{
+  if(e.key==='Tab'){e.preventDefault();tabDown=false;if(!menu_sticky){alt_held=false;drawGame();}}
+});
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+generateScale();
+resetSnake();
+while(fruits.length<num_fruits) spawnFruit();
+renderAlt();
+drawGame();
+restartLoop();
+updateStatus();
+</script>
+</body>
+</html>

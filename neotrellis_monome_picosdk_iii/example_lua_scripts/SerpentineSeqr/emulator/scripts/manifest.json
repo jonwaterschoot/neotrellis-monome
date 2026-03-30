@@ -1,0 +1,18 @@
+[
+  {
+    "name": "Serpentine Dev",
+    "file": "serpentine_dev.lua",
+    "description": "Snake sequencer game — development version with all latest features",
+    "author": "jonwaterschoot",
+    "version": "dev",
+    "gridSize": [16, 8]
+  },
+  {
+    "name": "Serpentine Stable",
+    "file": "serpentine.lua",
+    "description": "Snake sequencer game — stable release",
+    "author": "jonwaterschoot",
+    "version": "1.0",
+    "gridSize": [16, 8]
+  }
+]
