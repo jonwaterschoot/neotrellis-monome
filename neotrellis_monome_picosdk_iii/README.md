@@ -131,10 +131,45 @@ The neotrellis build includes custom lua functions to change LED colors.
 
 ```if grid_color then grid_color(250,80,10) end```
 
+This tint applies to `grid_led()` / `grid_led_all()` output, while `grid_led_rgb()` provides true independent per-pixel color.
+
 `grid_led_rgb(x, y, r, g, b)` sets a true per-pixel RGB color (0–255 per channel), bypassing the global tint. This allows multicolor scripts without any multiplexing or constant refresh. Use the same if guard:
 
 ```if grid_led_rgb then grid_led_rgb(x, y, 255, 0, 0) end```
 
 See [grid_led_rgb.md](grid_led_rgb.md) for full details, behavior notes, and examples.
+
+### Writing cross-device scripts — monochrome fallback
+
+Scripts that call `grid_led_rgb` run in full color on NeoTrellis. On a standard iii device `grid_led_rgb` is `nil`, so those calls are safely skipped — but that means **every pixel stays dark**. A well-written script degrades gracefully by translating its color intent into a `grid_led` brightness level.
+
+The recommended pattern is a single `spx` wrapper function at the top of your script:
+
+```lua
+local W, H = grid_size_x(), grid_size_y()
+
+local function spx(x, y, r, g, b)
+  if x < 1 or x > W or y < 1 or y > H then return end
+  if grid_led_rgb then
+    grid_led_rgb(x, y, r, g, b)
+  else
+    -- Convert brightest channel to 0-15 level.
+    -- Floor at 4: levels 1-3 are physically invisible on NeoTrellis
+    -- hardware and very dim on standard grids — any non-black pixel
+    -- should be at least faintly visible.
+    local lv = math.floor(math.max(r, g, b) / 17)
+    if lv < 4 and (r > 0 or g > 0 or b > 0) then lv = 4 end
+    grid_led(x, y, lv)
+  end
+end
+```
+
+Then replace every direct `grid_led_rgb` / `grid_led` call in your draw code with `spx(x, y, r, g, b)`. The color ratios you choose for NeoTrellis become the brightness contrast on monochrome grids automatically — a bright green active state and a dark green inactive state will render as level 15 and level 4 respectively.
+
+**Why level 4?** Confirmed through hardware testing on NeoTrellis via the viii app (WebSerial/mext protocol). The mext protocol uses a 0-15 brightness scale; levels 1–3 fall below the physical LED threshold and appear off. Level 4 (~27% of maximum) is the lowest level that renders as visibly dim-but-intentional. Bright active states typically land at level 10–15, giving clear contrast.
+
+**Testing with viii**: [dessertplanet/viii](https://github.com/dessertplanet/viii) is a browser app that connects to a physical Monome-compatible grid over WebSerial and runs iii Lua scripts directly. It exposes only `grid_led` (0-15), not `grid_led_rgb` — making it the ideal tool to verify your monochrome fallback before deploying to hardware, without needing a second device.
+
+See [color_fallback_demo.lua](../scripts/color_fallback_demo.lua) for a minimal, runnable example of this pattern.
 
 Please don't bother monome or the lines forum with regards to these particular features.
