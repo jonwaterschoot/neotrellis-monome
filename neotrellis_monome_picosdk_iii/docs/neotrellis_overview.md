@@ -7,7 +7,7 @@ This fork lives on top of two separate repos. Changes are split across both:
 | Layer | Base | This fork |
 |---|---|---|
 | Parent project | [@okyeron/neotrellis-monome](https://github.com/okyeron/neotrellis-monome) `main` | `jonwaterschoot/neotrellis-monome` `feature/colors` |
-| `iii` submodule | [tehn/iii](https://codeberg.org/tehn/iii) `main` | [jonwaterschoot/iii](https://codeberg.org/jonwaterschoot/iii) `main` |
+| `iii` submodule | [tehn/iii](https://codeberg.org/tehn/iii) `main` | [jonwaterschoot/iii](https://codeberg.org/jonwaterschoot/iii) `fix/25kb-streaming` |
 
 The RGB color work is entirely in the parent project. The 25KB script size fix is entirely in the `iii` submodule. Neither set of changes depends on the other — they can be considered independently.
 
@@ -81,7 +81,7 @@ The goal was to remove the RAM bottleneck that limited script uploads to ~25KB. 
 
 *Script size is now constrained by LittleFS flash capacity rather than SRAM.*
 
-If this fix is ever worth proposing upstream, a PR from `jonwaterschoot/iii` → `tehn/iii` on Codeberg is the path.
+A PR has been opened from `jonwaterschoot/iii:fix/25kb-streaming` → `tehn/iii:main` on Codeberg.
 
 ---
 
@@ -97,12 +97,19 @@ The `iii` submodule originally pointed directly at `tehn/iii`. Changes committed
    git add repl.c vm.c vm.h resource/lib_lua.c
    git commit -m "stream serial uploads to flash and add file-streaming Lua reader for 25KB+ script support"
    ```
-4. Redirected the submodule's `origin` to the personal fork and pushed:
+4. Added Codeberg SSH key, added `tehn/iii` as upstream, and created a feature branch on top of the latest upstream `main`:
    ```bash
-   git remote set-url origin https://codeberg.org/jonwaterschoot/iii
-   git push origin main
+   git remote add upstream https://codeberg.org/tehn/iii
+   git fetch upstream
+   git checkout -b fix/25kb-streaming upstream/main
+   git cherry-pick <fix-commit>
    ```
-5. Updated `.gitmodules` in the parent repo and committed the pointer:
+5. Switched origin to SSH and pushed the feature branch:
+   ```bash
+   git remote set-url origin git@codeberg.org:jonwaterschoot/iii.git
+   git push origin fix/25kb-streaming
+   ```
+6. Updated `.gitmodules` in the parent repo and committed the pointer:
    ```bash
    git submodule sync
    git add .gitmodules neotrellis_monome_picosdk_iii/src/iii
