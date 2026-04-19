@@ -1,0 +1,9 @@
+{
+  "project_name": "Multi-Screen Test",
+  "project_url": "https://github.com/jonwaterschoot/diii-neotrellis-emulator",
+  "author": "Gemini / jonwtr",
+  "description": "Webapp demo for multiple-screen emulation and NeoTrellis RGB / multiscreen color handling.",
+  "documentation_url": "README.md",
+  "tags": ["multiscreen", "neotrellis", "rgb", "demo", "test"],
+  "lua_file": "multiplescreen-test.lua"
+}
