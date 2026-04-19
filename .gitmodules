@@ -1,6 +1,6 @@
 [submodule "neotrellis_monome_picosdk_iii/src/iii"]
 	path = neotrellis_monome_picosdk_iii/src/iii
-	url = https://codeberg.org/tehn/iii
+	url = https://codeberg.org/jonwaterschoot/iii
 [submodule "neotrellis_monome_picosdk_iii/src/littlefs"]
 	path = neotrellis_monome_picosdk_iii/src/littlefs
 	url = https://codeberg.org/tehn/littlefs
