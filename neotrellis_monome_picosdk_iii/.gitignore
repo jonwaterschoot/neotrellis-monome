@@ -1,4 +1,5 @@
-/build
+build/
+.claude/
 /disable
 .DS_Store
 .vscode/launch.json

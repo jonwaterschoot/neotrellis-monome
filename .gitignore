@@ -1,2 +1,13 @@
-
 .DS_Store
+build/
+bin/
+obj/
+*.elf
+*.bin
+*.uf2
+*.hex
+*.map
+.cache/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
