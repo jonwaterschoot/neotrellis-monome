@@ -5,6 +5,7 @@ obj/
 *.elf
 *.bin
 *.uf2
+!**/uf2s/*.uf2
 *.hex
 *.map
 .cache/
