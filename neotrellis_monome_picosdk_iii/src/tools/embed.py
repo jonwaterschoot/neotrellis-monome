@@ -10,9 +10,9 @@ if n < 2:
 filename = sys.argv[1]
 output_dir = sys.argv[2]
 
-with open(filename, "rb") as f:
+with open(filename, "r", encoding="utf-8") as f:
     print('reading file: ' + filename)
-    data = f.read()
+    data = f.read().encode("utf-8") # Read as text, then encode to UTF-8 bytes
     print(f"read {len(data)} bytes")
     fileslug = os.path.basename(filename).replace('.', '_')
     hpath = f"{output_dir}/{fileslug}.h"
