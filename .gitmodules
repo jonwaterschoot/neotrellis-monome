@@ -7,3 +7,6 @@
 [submodule "neotrellis_monome_picosdk_iii/src/lua"]
 	path = neotrellis_monome_picosdk_iii/src/lua
 	url = https://codeberg.org/tehn/lua.git
+[submodule "neotrellis_monome_picosdk_iii/doc/scripts/emulator"]
+	path = neotrellis_monome_picosdk_iii/doc/scripts/emulator
+	url = https://github.com/jonwaterschoot/diii-neotrellis-emulator.git
