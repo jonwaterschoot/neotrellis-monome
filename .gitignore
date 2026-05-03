@@ -1,14 +1,6 @@
 .DS_Store
 build/
-bin/
-obj/
-*.elf
-*.bin
+.cache/
 *.uf2
 !**/uf2s/*.uf2
-*.hex
-*.map
-.cache/
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
+
