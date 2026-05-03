@@ -11,7 +11,9 @@
 extern void device_led_set(int x, int y, int z, int rel);
 extern int  device_led_get(int x, int y);
 extern void device_led_all(int z, int rel);
+extern void device_led_rgb_set(int x, int y, int r, int g, int b);
 extern void device_intensity(int z);
+extern void device_color_intensity(int z);
 extern void device_mark_dirty(void);
 extern int  device_cols(void);
 extern int  device_rows(void);
