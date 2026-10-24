@@ -17,4 +17,7 @@ Script picker for iii grids. Every `.lua` script on the device gets a slot, so t
 - Skipped files: `init.lua`, `lib.lua`, `selector.lua`, anything not ending in `.lua`, and support files starting with `pset_`, `data_` or `state_`. Add names to `skip` or prefixes to `skip_prefix` at the top of the script.
 - On a 16x8 or 8x8 grid there are 2 slot rows (32 or 16 slots). On a 4x4 grid there's no room for the name, so every row holds slots and the second press still loads.
 - To get back to the selector, power-cycle the grid, or use the `reboot` button in diii.
-- Similar script: [many-roads-grid](https://github.com/boreal-ground/many-roads-grid). It loads on the first press, and triple-clicking the top-left key reboots back to the menu.
+- Similar scripts:
+  - [many-roads-grid](https://github.com/boreal-ground/many-roads-grid) loads on the first press, and triple-clicking the top-left key reboots back to the menu.
+  - The [carlosedp `indication` fork](https://github.com/carlosedp/many-roads-grid/tree/indication) adds a continuous "tour" that scrolls each script's name in turn. It still loads on the first press.
+  - selector shows a name only when you press a slot, needs a second press to load, and has no in-script shortcut that could clash with a running script. To pick another script, reboot.
