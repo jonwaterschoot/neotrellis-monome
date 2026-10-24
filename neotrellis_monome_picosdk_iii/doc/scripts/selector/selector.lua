@@ -36,7 +36,8 @@ local show_text = rows >= 7           -- 5 rows of text + a gap + 1 slot row
 local text_y = rows - 4               -- top row of the name display
 local slot_rows = show_text and rows - 6 or rows
 local max_slots = cols * slot_rows
-local page_chars = (cols + 1) // 4    -- 3 columns per letter + 1 spacer
+local page_chars = cols // 3          -- 3 columns per letter, no spacer
+local dim = 0.4                       -- every other letter is dimmed to this
 local page_time = 1.0                 -- seconds per page of a long name
 
 local function skipped(f)
@@ -57,21 +58,24 @@ if #scripts > max_slots then
   print("selector: "..#scripts.." scripts, only "..max_slots.." slots")
 end
 
--- text as a list of columns; bit r-1 of a column is text row r
+-- text as a list of columns; bit r-1 of a column is text row r, and bit 5
+-- marks a dimmed letter. Letters touch, so every other one is dimmed to
+-- keep them apart (as in leaveseqr).
+local DIM_BIT = 1 << 5
 local function columns(str)
   local out = {}
+  local n = 0
   for ch in str:gmatch(".") do
+    n = n + 1
     local g = font[ch] or unknown
     for c = 2,0,-1 do
-      local col = 0
+      local col = (n % 2 == 0) and DIM_BIT or 0
       for r = 1,5 do
         if (g[r] >> c) & 1 == 1 then col = col | (1 << (r-1)) end
       end
       table.insert(out, col)
     end
-    table.insert(out, 0)
   end
-  table.remove(out) -- trailing spacer
   return out
 end
 
@@ -102,11 +106,16 @@ local function draw()
   end
   if sel and text then
     local c = slot_color(sel)
+    local cd = { math.floor(c[1]*dim), math.floor(c[2]*dim), math.floor(c[3]*dim) }
     local cur = text[page]
     for x=1,math.min(#cur, cols) do
       local col = cur[x]
+      local dimmed = col & DIM_BIT ~= 0
       for r=1,5 do
-        if (col >> (r-1)) & 1 == 1 then led(x, text_y + r - 1, c, 10) end
+        if (col >> (r-1)) & 1 == 1 then
+          if dimmed then led(x, text_y + r - 1, cd, 4)
+          else led(x, text_y + r - 1, c, 12) end
+        end
       end
     end
   end
