@@ -115,7 +115,7 @@ target_compile_definitions(neotrellis-iii PRIVATE
 # LUA_USE_C89 so lua_Integer = long long (64-bit). On ARM AAPCS this causes an
 # ABI mismatch: lua_pushinteger expects long long in r2:r3 but the caller puts
 # long in r1, pushing garbage values. Undefine LUA_USE_C89 for vm.c only.
-set_source_files_properties(${CMAKE_SOURCE_DIR}/src/iii/vm.c PROPERTIES
+set_source_files_properties(${CMAKE_SOURCE_DIR}/src/iii/vm.c ${CMAKE_SOURCE_DIR}/src/device_lua.c PROPERTIES
     COMPILE_OPTIONS "-ULUA_USE_C89"
 )
 
