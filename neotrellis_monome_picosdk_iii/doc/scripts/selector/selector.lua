@@ -1,7 +1,8 @@
 -- selector.lua: script picker for iii grids
 -- Every .lua script on the device gets a slot, sorted by name, filling the
 -- top rows left to right. Press a slot to show its name along the bottom of
--- the grid (scrolling when it doesn't fit), press it again to load it.
+-- the grid (a few letters at a time when it doesn't fit), press it again to
+-- load it.
 -- Press anywhere else to deselect.
 -- Make it the boot script with: first("selector.lua")
 
@@ -35,6 +36,8 @@ local show_text = rows >= 7           -- 5 rows of text + a gap + 1 slot row
 local text_y = rows - 4               -- top row of the name display
 local slot_rows = show_text and rows - 6 or rows
 local max_slots = cols * slot_rows
+local page_chars = (cols + 1) // 4    -- 3 columns per letter + 1 spacer
+local page_time = 1.0                 -- seconds per page of a long name
 
 local function skipped(f)
   if f:sub(-4) ~= ".lua" or skip[f] then return true end
@@ -54,10 +57,10 @@ if #scripts > max_slots then
   print("selector: "..#scripts.." scripts, only "..max_slots.." slots")
 end
 
--- the name as a list of columns; bit r-1 of a column is text row r
-local function name_columns(name)
+-- text as a list of columns; bit r-1 of a column is text row r
+local function columns(str)
   local out = {}
-  for ch in (name:gsub("%.lua$", "")):upper():gmatch(".") do
+  for ch in str:gmatch(".") do
     local g = font[ch] or unknown
     for c = 2,0,-1 do
       local col = 0
@@ -72,6 +75,16 @@ local function name_columns(name)
   return out
 end
 
+-- the name split into pages of columns that fit the grid width
+local function name_pages(name)
+  local s = (name:gsub("%.lua$", "")):upper()
+  local pages = {}
+  for i = 1, #s, page_chars do
+    table.insert(pages, columns(s:sub(i, i + page_chars - 1)))
+  end
+  return pages
+end
+
 local function led(x, y, c, level)
   if grid_led_rgb then grid_led_rgb(x, y, c[1], c[2], c[3])
   else grid_led(x, y, level) end
@@ -79,7 +92,7 @@ end
 
 local function slot_color(i) return palette[(i-1) % #palette + 1] end
 
-local sel, text, offset = nil, nil, 0
+local sel, text, page = nil, nil, 1
 
 local function draw()
   grid_led_all(0)
@@ -89,10 +102,9 @@ local function draw()
   end
   if sel and text then
     local c = slot_color(sel)
-    local scrolling = #text > cols
-    local len = #text + 4 -- 4 blank columns between repeats
-    for x=1,cols do
-      local col = text[scrolling and ((x-1+offset) % len + 1) or x] or 0
+    local cur = text[page]
+    for x=1,math.min(#cur, cols) do
+      local col = cur[x]
       for r=1,5 do
         if (col >> (r-1)) & 1 == 1 then led(x, text_y + r - 1, c, 10) end
       end
@@ -102,11 +114,11 @@ local function draw()
 end
 
 local ticker = metro.init(function()
-  if text and #text > cols then
-    offset = offset + 1
+  if text and #text > 1 then
+    page = page % #text + 1
     draw()
   end
-end, 0.12)
+end, page_time)
 ticker:start()
 
 local function load(name)
@@ -140,8 +152,10 @@ event_grid = function(x,y,z)
       load(scripts[i])
       return
     end
-    sel, offset = i, 0
-    text = show_text and name_columns(scripts[i]) or nil
+    sel, page = i, 1
+    text = show_text and name_pages(scripts[i]) or nil
+    ticker:stop() -- restart so the first page gets a full interval
+    ticker:start()
     print(i..": "..scripts[i])
   else
     sel, text = nil, nil
