@@ -37,8 +37,8 @@ local text_y = rows - 4               -- top row of the name display
 local slot_rows = show_text and rows - 6 or rows
 local max_slots = cols * slot_rows
 local page_chars = cols // 3          -- 3 columns per letter, no spacer
-local dim = 0.4                       -- every other letter is dimmed to this
-local page_time = 1.0                 -- seconds per page of a long name
+local dim = 0.1                       -- every other letter is dimmed to this
+local page_time = 3.0                 -- seconds per page of a long name
 
 local function skipped(f)
   if f:sub(-4) ~= ".lua" or skip[f] then return true end

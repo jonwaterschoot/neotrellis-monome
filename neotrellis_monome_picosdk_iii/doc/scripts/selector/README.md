@@ -3,7 +3,7 @@
 Script picker for iii grids. Every `.lua` script on the device gets a slot, so there's no list of names to maintain.
 
 - Slots fill the top rows, sorted by name, each in its own color (or a plain brightness level on firmware without `grid_led_rgb`).
-- Press a slot to show the script's name along the bottom five rows in a 3x5 font. Letters touch, with every other one dimmed to tell them apart (the same approach as leaveseqr). Long names are shown as many letters as fit at a time (5 on a 16-wide grid, 2 on an 8-wide one), switching every second. Change `page_time` or `dim` at the top of the script to adjust.
+- Press a slot to show the script's name along the bottom five rows in a 3x5 font. Letters touch, with every other one dimmed to 10% to tell them apart (the same approach as leaveseqr). Long names are shown as many letters as fit at a time (5 on a 16-wide grid, 2 on an 8-wide one), switching every 3 seconds. Change `page_time` or `dim` at the top of the script to adjust.
 - Press the same slot again to load the script. Press anywhere else to deselect.
 - The slot list is also printed to the diii console.
 
