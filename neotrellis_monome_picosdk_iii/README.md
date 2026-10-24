@@ -56,6 +56,16 @@ The firmware supports two modes, stored in flash and persisted across power cycl
 
 To toggle between modes: hold key **(0,0)** (top-left) while the device is powering up.  
 
+### Serial mode color picker
+
+To change the LED color used in mode 1 (monome), hold the **top-right** key while the device is powering up. The device boots into mode 1 and shows a palette:
+
+- column 0 is white, the other columns are hues, and rows fade from full color (top) to pastel
+- the bottom row previews monome levels 1–15 in the chosen color
+- press a palette key to choose (it blinks), then press the top-right key to save and continue
+
+The color is saved in flash and only applies to mode 1. In iii mode, scripts set their own color with `grid_color()`. Without a saved color, mode 1 uses the `R`/`G`/`B` default from `config.h`. The saved color sits right after the firmware, so it resets to that default if a new UF2 grows past the next 64 KB boundary.
+
 ### i2c address configuration  
 
 NeoTrellis tiles have I2C address jumpers (A0–A4) and a base address of `0x2E`. The addresses in `config.h` must match the physical jumper settings on your tiles.  

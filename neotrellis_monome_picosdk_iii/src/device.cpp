@@ -18,6 +18,8 @@
 #include "config.h"
 #include "pico/time.h"
 #include "pico/stdlib.h"
+#include "hardware/flash.h"
+#include "hardware/sync.h"
 #include "tusb.h"
 #include <string.h>
 
@@ -116,7 +118,7 @@ extern "C" void device_color_intensity(int z) {
     grid_dirty = true;
 }
 
-static inline uint32_t level_to_color(uint8_t val) {
+static inline uint32_t level_to_rgb(uint8_t val, uint8_t tr, uint8_t tg, uint8_t tb) {
     uint8_t gval = (uint8_t)((uint16_t)gammaTable[val] * gammaAdj);
     if (gval == 0) return 0;
 
@@ -126,7 +128,11 @@ static inline uint32_t level_to_color(uint8_t val) {
         return (out > 0) ? out : 1;
     };
 
-    return (calc(led_r) << 16) | (calc(led_g) << 8) | calc(led_b);
+    return (calc(tr) << 16) | (calc(tg) << 8) | calc(tb);
+}
+
+static inline uint32_t level_to_color(uint8_t val) {
+    return level_to_rgb(val, led_r, led_g, led_b);
 }
 
 static void sendLeds_iii() {
@@ -202,6 +208,137 @@ static void sendLeds_monome() {
 }
 
 // ---------------------------------------------------------------------------
+// Serial-mode color — saved in the second sector of the flash status block.
+// iii only uses the first sector (mode byte); LittleFS starts one block later.
+// The status block follows the firmware binary, so flashing a build of a
+// different size resets the color to the R/G/B default in config.h.
+// ---------------------------------------------------------------------------
+static_assert(FLASH_BLOCK_SIZE >= 2 * FLASH_SECTOR_SIZE,
+              "color sector must fit inside the flash status block");
+
+#define COLOR_MAGIC 0xC0
+
+static uint32_t color_flash_offset() {
+    return flash_get_status_offset() + FLASH_SECTOR_SIZE;
+}
+
+static void color_load() {
+    const uint8_t *v = (const uint8_t *)(XIP_BASE + color_flash_offset());
+    if (v[0] == COLOR_MAGIC) {
+        led_r = v[1];
+        led_g = v[2];
+        led_b = v[3];
+    }
+}
+
+static void color_save() {
+    const uint8_t *v = (const uint8_t *)(XIP_BASE + color_flash_offset());
+    if (v[0] == COLOR_MAGIC && v[1] == led_r && v[2] == led_g && v[3] == led_b)
+        return; // unchanged — skip the erase
+
+    // must run before core 1 is launched (same constraint as flash_write_mode)
+    uint8_t b[FLASH_PAGE_SIZE];
+    memset(b, 0xFF, sizeof(b));
+    b[0] = COLOR_MAGIC;
+    b[1] = led_r;
+    b[2] = led_g;
+    b[3] = led_b;
+    uint32_t ints = save_and_disable_interrupts();
+    flash_range_erase(color_flash_offset(), FLASH_SECTOR_SIZE);
+    flash_range_program(color_flash_offset(), b, FLASH_PAGE_SIZE);
+    restore_interrupts(ints);
+}
+
+// ---------------------------------------------------------------------------
+// Boot-time color picker (hold the top-right key at power-on).
+// Column 0 is white, the other columns are hues; rows fade from full
+// saturation to pastel. The bottom row previews levels 1–15 in the chosen
+// color. Press the top-right key to save and continue into serial mode.
+// ---------------------------------------------------------------------------
+#define PICKER_DONE_X (NUM_COLS - 1)
+#define PICKER_DONE_Y 0
+#define PICKER_ROWS   (NUM_ROWS - 1) // last row is the level preview
+
+static bool    picker_active = false;
+static int16_t picker_key    = -1; // last key pressed while picker is active
+
+static uint32_t hue_to_rgb(uint16_t h, uint8_t s) {
+    uint8_t  region = h / 60;
+    uint16_t f = (uint16_t)((h % 60) * 255 / 60);
+    uint8_t  p = 255 - s;
+    uint8_t  q = 255 - (uint8_t)((s * f) / 255);
+    uint8_t  t = 255 - (uint8_t)((s * (255 - f)) / 255);
+    uint8_t  r, g, b;
+    switch (region) {
+        case 0:  r = 255; g = t;   b = p;   break;
+        case 1:  r = q;   g = 255; b = p;   break;
+        case 2:  r = p;   g = 255; b = t;   break;
+        case 3:  r = p;   g = q;   b = 255; break;
+        case 4:  r = t;   g = p;   b = 255; break;
+        default: r = 255; g = p;   b = q;   break;
+    }
+    return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+}
+
+static uint32_t picker_tint(uint8_t x, uint8_t y) {
+    if (x == 0) return 0xFFFFFF;
+    uint16_t h = (uint16_t)((x - 1) * 360 / (NUM_COLS - 1));
+    uint8_t  s = (uint8_t)(255 * (PICKER_ROWS - y) / PICKER_ROWS);
+    return hue_to_rgb(h, s);
+}
+
+static void color_picker() {
+    picker_active = true;
+    int sel_x = -1, sel_y = -1;
+    bool done = false;
+
+    while (!done) {
+        trellis.read();
+        if (picker_key >= 0) {
+            uint8_t x = picker_key % NUM_COLS;
+            uint8_t y = picker_key / NUM_COLS;
+            picker_key = -1;
+            if (x == PICKER_DONE_X && y == PICKER_DONE_Y) {
+                done = true;
+            } else if (y < PICKER_ROWS) {
+                uint32_t t = picker_tint(x, y);
+                led_r = (t >> 16) & 0xFF;
+                led_g = (t >> 8) & 0xFF;
+                led_b = t & 0xFF;
+                sel_x = x;
+                sel_y = y;
+            }
+        }
+
+        bool blink = (to_ms_since_boot(get_absolute_time()) / 250) & 1;
+        for (int y = 0; y < NUM_ROWS; y++) {
+            for (int x = 0; x < NUM_COLS; x++) {
+                uint32_t c;
+                if (y == PICKER_ROWS) {
+                    c = level_to_color(1 + x * 14 / (NUM_COLS - 1));
+                } else if (x == PICKER_DONE_X && y == PICKER_DONE_Y) {
+                    c = level_to_color(15);
+                } else {
+                    uint32_t t = picker_tint(x, y);
+                    uint8_t lvl = (x == sel_x && y == sel_y && blink) ? 4 : 10;
+                    c = level_to_rgb(lvl, (t >> 16) & 0xFF, (t >> 8) & 0xFF, t & 0xFF);
+                }
+                trellis.setPixelColor(x, y, c);
+            }
+        }
+        trellis.show();
+        sleep_ms(20);
+    }
+
+    picker_active = false;
+    color_save();
+    for (int y = 0; y < NUM_ROWS; y++)
+        for (int x = 0; x < NUM_COLS; x++)
+            trellis.setPixelColor(x, y, 0);
+    trellis.show();
+}
+
+// ---------------------------------------------------------------------------
 // NeoTrellis key callback — dispatches based on current mode
 // ---------------------------------------------------------------------------
 static TrellisCallback keyCallback(keyEvent evt) {
@@ -217,7 +354,9 @@ static TrellisCallback keyCallback(keyEvent evt) {
     uint8_t y = evt.bit.NUM / NUM_COLS;
     uint8_t z = (evt.bit.EDGE == SEESAW_KEYPAD_EDGE_RISING) ? 1 : 0;
 
-    if (mode == 0) {
+    if (picker_active) {
+        if (z) picker_key = evt.bit.NUM;
+    } else if (mode == 0) {
         grid_add_event(x, y, z);
     } else {
         mdp.sendGridKey(x, y, z);
@@ -247,42 +386,72 @@ static uint8_t first_tile_addr() {
 #endif
 }
 
-extern "C" bool check_device_key() {
+// Keys checked at power-on: top-left toggles mode, top-right opens the
+// serial-mode color picker.
+#define BOOT_KEY_MODE  0x01
+#define BOOT_KEY_COLOR 0x02
+
+static const uint8_t boot_keys[2][2] = {{0, 0}, {NUM_COLS - 1, 0}};
+
+static Adafruit_NeoTrellis &boot_key_tile(int k) {
+    return trellis_array[boot_keys[k][1] / 4][boot_keys[k][0] / 4];
+}
+
+static uint8_t boot_key_local(int k) {
+    return NEO_TRELLIS_XY(boot_keys[k][0] % 4, boot_keys[k][1] % 4);
+}
+
+// Polls ~500 ms and returns a BOOT_KEY_* mask of the keys held.
+static uint8_t poll_boot_keys() {
     // EDGE_HIGH is a level trigger: fires each seesaw scan while the key is
     // held, so it works even if the key was already pressed before boot.
-    trellis_array[0][0].setKeypadEvent(NEO_TRELLIS_KEY(0), SEESAW_KEYPAD_EDGE_HIGH, true);
+    for (int k = 0; k < 2; k++)
+        boot_key_tile(k).setKeypadEvent(NEO_TRELLIS_KEY(boot_key_local(k)),
+                                        SEESAW_KEYPAD_EDGE_HIGH, true);
 
-    bool detected = false;
-    for (int i = 0; i < 50 && !detected; i++) {
+    uint8_t held = 0;
+    for (int i = 0; i < 50 && !held; i++) {
         sleep_ms(10);
-        uint8_t count = trellis_array[0][0].getKeypadCount();
-        sleep_us(500);
-        if (count > 0) {
+        for (int k = 0; k < 2; k++) {
+            Adafruit_NeoTrellis &tile = boot_key_tile(k);
+            uint8_t count = tile.getKeypadCount();
+            sleep_us(500);
+            if (count == 0) continue;
             keyEventRaw e[count];
-            trellis_array[0][0].readKeypad(e, count);
+            tile.readKeypad(e, count);
             for (int j = 0; j < count; j++) {
+                if (e[j].bit.EDGE != SEESAW_KEYPAD_EDGE_HIGH) continue;
                 uint8_t key = NEO_TRELLIS_SEESAW_KEY(e[j].bit.NUM);
-                if (key == 0 && e[j].bit.EDGE == SEESAW_KEYPAD_EDGE_HIGH) {
-                    mode = (mode == 0) ? 1 : 0;
-                    detected = true;
-                    break;
-                }
+                // both keys may share a tile (4x4 grid), so match against each
+                for (int m = 0; m < 2; m++)
+                    if (&boot_key_tile(m) == &tile && key == boot_key_local(m))
+                        held |= (1 << m);
             }
         }
     }
 
-    // Disable HIGH, restore RISING/FALLING for normal key operation.
-    trellis_array[0][0].setKeypadEvent(NEO_TRELLIS_KEY(0), SEESAW_KEYPAD_EDGE_HIGH, false);
-    trellis_array[0][0].setKeypadEvent(NEO_TRELLIS_KEY(0), SEESAW_KEYPAD_EDGE_RISING, true);
-    trellis_array[0][0].setKeypadEvent(NEO_TRELLIS_KEY(0), SEESAW_KEYPAD_EDGE_FALLING, true);
-    // Drain stale EDGE_HIGH events left in the FIFO so they don't get
-    // processed as phantom key-up events by the first device_task() calls.
-    uint8_t stale = trellis_array[0][0].getKeypadCount();
-    sleep_us(500);
-    if (stale > 0) {
-        keyEventRaw tmp[stale + 2];
-        trellis_array[0][0].readKeypad(tmp, stale + 2);
+    for (int k = 0; k < 2; k++) {
+        // Disable HIGH, restore RISING/FALLING for normal key operation.
+        Adafruit_NeoTrellis &tile = boot_key_tile(k);
+        uint8_t key = NEO_TRELLIS_KEY(boot_key_local(k));
+        tile.setKeypadEvent(key, SEESAW_KEYPAD_EDGE_HIGH, false);
+        tile.setKeypadEvent(key, SEESAW_KEYPAD_EDGE_RISING, true);
+        tile.setKeypadEvent(key, SEESAW_KEYPAD_EDGE_FALLING, true);
+        // Drain stale EDGE_HIGH events left in the FIFO so they don't get
+        // processed as phantom key-up events by the first device_task() calls.
+        uint8_t stale = tile.getKeypadCount();
+        sleep_us(500);
+        if (stale > 0) {
+            keyEventRaw tmp[stale + 2];
+            tile.readKeypad(tmp, stale + 2);
+        }
     }
+    return held;
+}
+
+extern "C" bool check_device_key() {
+    bool detected = poll_boot_keys() & BOOT_KEY_MODE;
+    if (detected) mode = (mode == 0) ? 1 : 0;
     return detected;
 }
 
@@ -290,11 +459,22 @@ extern "C" bool check_device_key() {
 extern "C" void mode_check() {
     uint8_t saved = flash_read_mode();
     mode = saved;
-    check_device_key();   // polls 500 ms; keyCheck toggles mode if key 0,0 pressed
-    
+    uint8_t held = poll_boot_keys();   // polls 500 ms
+
+    if (held & BOOT_KEY_COLOR) {
+        mode = 1;   // the picker sets the serial-mode color, so boot into serial
+    } else if (held & BOOT_KEY_MODE) {
+        mode = (mode == 0) ? 1 : 0;
+    }
+
     if (mode != saved) {
         flash_write_mode(mode);
         g_monome_mode = mode;
+    }
+
+    if (mode == 1) {
+        color_load();
+        if (held & BOOT_KEY_COLOR) color_picker();
     }
 }
 
