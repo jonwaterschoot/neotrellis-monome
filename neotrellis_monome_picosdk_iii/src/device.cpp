@@ -208,7 +208,9 @@ static void sendLeds_monome() {
 }
 
 // ---------------------------------------------------------------------------
-// Serial-mode color — saved in the second sector of the flash status block.
+// Default color — saved in the second sector of the flash status block.
+// Tints monochrome output in both modes; iii scripts can override it with
+// grid_color() or grid_led_rgb().
 // iii only uses the first sector (mode byte); LittleFS starts one block later.
 // The status block follows the firmware binary, so flashing a build of a
 // different size resets the color to the R/G/B default in config.h.
@@ -253,7 +255,7 @@ static void color_save() {
 // Boot-time color picker (hold the top-right key at power-on).
 // Column 0 is white, the other columns are hues; rows fade from full
 // saturation to pastel. The bottom row previews levels 1–15 in the chosen
-// color. Press the top-right key to save and continue into serial mode.
+// color. Press the top-right key to save and continue booting.
 // ---------------------------------------------------------------------------
 #define PICKER_DONE_X (NUM_COLS - 1)
 #define PICKER_DONE_Y 0
@@ -387,7 +389,7 @@ static uint8_t first_tile_addr() {
 }
 
 // Keys checked at power-on: top-left toggles mode, top-right opens the
-// serial-mode color picker.
+// color picker.
 #define BOOT_KEY_MODE  0x01
 #define BOOT_KEY_COLOR 0x02
 
@@ -409,8 +411,12 @@ static uint8_t poll_boot_keys() {
         boot_key_tile(k).setKeypadEvent(NEO_TRELLIS_KEY(boot_key_local(k)),
                                         SEESAW_KEYPAD_EDGE_HIGH, true);
 
+    // after the first key is seen, poll a few more times so a second
+    // held key (top-left + top-right together) is caught too
     uint8_t held = 0;
-    for (int i = 0; i < 50 && !held; i++) {
+    int settle = 3;
+    for (int i = 0; i < 50 && settle > 0; i++) {
+        if (held) settle--;
         sleep_ms(10);
         for (int k = 0; k < 2; k++) {
             Adafruit_NeoTrellis &tile = boot_key_tile(k);
@@ -461,9 +467,7 @@ extern "C" void mode_check() {
     mode = saved;
     uint8_t held = poll_boot_keys();   // polls 500 ms
 
-    if (held & BOOT_KEY_COLOR) {
-        mode = 1;   // the picker sets the serial-mode color, so boot into serial
-    } else if (held & BOOT_KEY_MODE) {
+    if (held & BOOT_KEY_MODE) {
         mode = (mode == 0) ? 1 : 0;
     }
 
@@ -472,10 +476,20 @@ extern "C" void mode_check() {
         g_monome_mode = mode;
     }
 
-    if (mode == 1) {
-        color_load();
-        if (held & BOOT_KEY_COLOR) color_picker();
-    }
+    color_load();
+    if (held & BOOT_KEY_COLOR) color_picker();
+}
+
+// Restores the saved default color and full color intensity. Called each
+// time the iii VM starts, so a grid_color() from the previous script
+// doesn't carry over to the next one.
+extern "C" void device_color_reset(void) {
+    led_r = R;
+    led_g = G;
+    led_b = B;
+    color_load();
+    px_gain = 255;
+    grid_dirty = true;
 }
 
 extern "C" void device_init() {

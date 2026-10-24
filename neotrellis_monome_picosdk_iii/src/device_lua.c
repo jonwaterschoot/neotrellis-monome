@@ -130,5 +130,8 @@ static const luaL_Reg device_lib[] = {
 };
 
 const luaL_Reg *get_device_lib(void) {
+    // vm_init() calls this once per VM start (boot, upload, device_reset),
+    // so it doubles as the hook for resetting the tint between scripts.
+    device_color_reset();
     return device_lib;
 }
