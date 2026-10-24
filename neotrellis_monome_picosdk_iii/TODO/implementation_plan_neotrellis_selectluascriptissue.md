@@ -11,7 +11,7 @@ The user reports that `select.lua` displays pixels but does not trigger script l
 
 ### Lua Scripts
 
-#### [MODIFY] [select.lua](file:///c:/Users/jonwa/Documents/GitHub/neotrellis-monome/neotrellis_monome_picosdk_iii/doc/scripts/tehn_temp/select.lua)
+#### [MODIFY] select.lua (tehn's script; no longer kept in this repo, replaced by [selector](../doc/scripts/selector/))
 - Add `z == 1` check to only trigger on button press.
 - Add visual feedback (dimming the LED) when a script is selected.
 - Add a print statement to verify loading action on serial.

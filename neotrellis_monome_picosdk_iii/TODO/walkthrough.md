@@ -5,7 +5,7 @@ I have implemented fixes for the script loading issue in `select.lua` and addres
 ## Changes Made
 
 ### Lua Scripts
-- **[select.lua](file:///c:/Users/jonwa/Documents/GitHub/neotrellis-monome/neotrellis_monome_picosdk_iii/doc/scripts/tehn_temp/select.lua)**:
+- **select.lua** (tehn's script; no longer kept in this repo, replaced by [selector](../doc/scripts/selector/)):
     - Added `z == 1` check to ensure the script only loads once per button press (ignoring the release event).
     - Added a `print` statement for serial console feedback.
     - Added a visual cue by dimming the selected LED before loading.
