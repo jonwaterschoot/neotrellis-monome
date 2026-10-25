@@ -419,7 +419,7 @@ The branches named above were merged and deleted during cleanup on 2026-10-24.
 
 | Asset | Location | Contains |
 |---|---|---|
-| `main` | `github.com/jonwaterschoot/neotrellis-monome` | Color API, grid coordinate fix, default color picker, selector script. This is the branch to build from. |
+| `main` | `github.com/jonwaterschoot/neotrellis-monome` | Color API, default color picker, selector script. This is the branch to build from. |
 | `fix/streaming-upload` | `codeberg.org/jonwaterschoot/iii` | The streaming upload fix on iii v1.1.2. The `src/iii` submodule points here. |
 | `fix/25kb-streaming` | `codeberg.org/jonwaterschoot/iii` | The earlier streaming fix, before iii v1.1.2. |
 | `archive/feature-colors` (tag) | GitHub | The original v1.0-era color work with the write-then-compile upload approach. |

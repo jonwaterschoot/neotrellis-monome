@@ -6,7 +6,6 @@
 
 - **Per-pixel color in iii scripts.** `grid_led_rgb(x, y, r, g, b)`, `grid_color(r, g, b)` and `grid_color_intensity(level)`, with a power limiter that caps total brightness at what an all-white grid would draw. Scripts can check `if grid_led_rgb then` and fall back to monochrome on other grids.
 - **Large script uploads.** Stock iii crashes on scripts over about 32 KB. This fork uses [my iii fork on Codeberg](https://codeberg.org/jonwaterschoot/iii/src/branch/fix/streaming-upload), which streams uploads to flash. Scripts up to at least 57 KB work. See the [investigation](neotrellis_monome_picosdk_iii/doc/changestracker/leaveseqr-upload-failure-investigation.md).
-- **Grid coordinate fix.** Key presses could reach Lua with garbage coordinates. See the [write-up](neotrellis_monome_picosdk_iii/doc/changestracker/grid-coordinate-abi-fix.md).
 - **Default color picker.** Hold the top-right key at power-up to choose the tint for monochrome output in both serial (norns) and iii mode. See the [firmware README](neotrellis_monome_picosdk_iii/README.md#default-color-picker).
 - **[selector](neotrellis_monome_picosdk_iii/doc/scripts/selector/)**, a script picker. Every script on the device gets a slot; press once to show its name, press again to load it.
 - **Example scripts** in [`doc/scripts`](neotrellis_monome_picosdk_iii/doc/scripts/), including the [leaveseqr](neotrellis_monome_picosdk_iii/doc/scripts/largescript/) sequencer.
