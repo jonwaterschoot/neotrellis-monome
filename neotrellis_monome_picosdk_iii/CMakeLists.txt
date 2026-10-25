@@ -29,6 +29,10 @@ cmake_minimum_required(VERSION 3.13)
 
 set(PICO_BOARD pico CACHE STRING "Board type")
 
+# board and grid defines (see "Build defines" below); override with -D
+set(BOARDTYPE 1 CACHE STRING "1=PICO, 2=KB2040QT, 3=DINKII, 4=FEATHER2040QT")
+set(GRIDCOUNT 3 CACHE STRING "1=4X4, 2=8x8, 3=16x8 (4=16x16 is not implemented yet)")
+
 # ====================================================================================
 
 set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR} CACHE STRING "Additional board header directories")
@@ -98,8 +102,8 @@ target_compile_definitions(neotrellis-iii PRIVATE
     LUA_COMPAT_5_2
     LUA_USE_C89
     USE_TINYUSB=1
-    BOARDTYPE=1   # must be number - options are:  1=PICO, 2=KB2040QT, 3=DINKII, 4=FEATHER2040QT
-    GRIDCOUNT=3   # must be number - options are:  1=4X4, 2=8x8, 3=16x8, 4=16x16 
+    BOARDTYPE=${BOARDTYPE}   # must be number - options are:  1=PICO, 2=KB2040QT, 3=DINKII, 4=FEATHER2040QT
+    GRIDCOUNT=${GRIDCOUNT}   # must be number - options are:  1=4X4, 2=8x8, 3=16x8, 4=16x16 
 )
 
 # ====================================================================================

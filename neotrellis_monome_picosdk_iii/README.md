@@ -45,6 +45,17 @@ The build output (`neotrellis-iii.uf2`) will be in the `build/` directory.
 
 > **Note:** You do not need to wipe the `build/` folder between builds. CMake/Ninja performs incremental builds automatically — only changed files are recompiled. Only wipe the build folder if you change CMake configuration options (board type, SDK version, etc.) and the build behaves unexpectedly.  
 
+### Building other boards and grid sizes
+
+`BOARDTYPE` and `GRIDCOUNT` are CMake cache variables, so you can override them without editing `CMakeLists.txt`. For example, for a dink-ii driving an 8x8 grid:
+
+```
+cmake -S . -B build/variants/dinkii-64 -G Ninja -DPICO_BOARD=board_dinkii -DBOARDTYPE=3 -DGRIDCOUNT=2
+cmake --build build/variants/dinkii-64
+```
+
+`tools/build-variants.sh` builds Pico and dink-ii at 4x4, 8x8 and 16x8 in one go. It puts named UF2s in `build/variants/uf2s/` and uses the tools installed by the Pico VS Code extension in `~/.pico-sdk`. 16x16 is not implemented yet.
+
 To flash: hold the BOOTSEL button on the Pico while plugging in USB, then drag-and-drop the `.uf2` file onto the mass storage drive that appears.  
 
 ### Device modes. 
