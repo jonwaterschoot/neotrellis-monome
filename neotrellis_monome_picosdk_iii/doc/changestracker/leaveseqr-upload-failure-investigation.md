@@ -413,17 +413,16 @@ Applied color changes onto `dev/colors-v2` (branched from `fix/streaming-upload`
 
 ---
 
-## Key Branches and Patches
+## Where the work lives now (2026-10-24)
+
+The branches named above were merged and deleted during cleanup on 2026-10-24.
 
 | Asset | Location | Contains |
 |---|---|---|
-| `feature/colors` | `origin/feature/colors` (GitHub) | Color API + write-then-compile fix |
-| `fix/25kb-streaming` | `codeberg.org/jonwaterschoot/iii` | Streaming fix (earlier approach) |
-| `iii-write-then-compile-changes.patch` | `doc/changestracker/` | repl.c, vm.c, vm.h, lib_lua.c |
-| `neotrellis-lua-fixes.patch` | `doc/changestracker/` | luaconf.h, linit.c |
+| `main` | `github.com/jonwaterschoot/neotrellis-monome` | Color API, grid coordinate fix, default color picker, selector script. This is the branch to build from. |
+| `fix/streaming-upload` | `codeberg.org/jonwaterschoot/iii` | The streaming upload fix on iii v1.1.2. The `src/iii` submodule points here. |
+| `fix/25kb-streaming` | `codeberg.org/jonwaterschoot/iii` | The earlier streaming fix, before iii v1.1.2. |
+| `archive/feature-colors` (tag) | GitHub | The original v1.0-era color work with the write-then-compile upload approach. |
+| `archive/windows-midi-usb-fixes` (tag) | GitHub | March 2026 Windows MIDI/USB fixes on the old layout. |
 
----
-
-## Current Working Branch
-
-`dev/colors-v2` — branched from clean main (iii v1.1.2 upstream), nothing added yet. This is the correct branch to use for any new integration work.
+The `dev/colors-v2` and `fix/streaming-upload` branches of this repo are merged into `main`. The two `.patch` files this report mentions were never committed to either repo. The write-then-compile patch was replaced by the streaming fix on Codeberg. In the Lua patch, the `luaconf.h` change shipped upstream in iii v1.1.2, and the `linit.c` library removals were not carried over (see Step 4).

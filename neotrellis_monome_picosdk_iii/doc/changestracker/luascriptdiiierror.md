@@ -1,3 +1,8 @@
+# Raw diii console log: leaveseqr.lua upload failure
+
+Unedited diii console output from uploading leaveseqr.lua (57 KB) on stock iii, which overflows its 32 KB receive buffer. The analysis is in [leaveseqr-upload-failure-investigation.md](leaveseqr-upload-failure-investigation.md).
+
+```
 Uploading leaveseqr.lua...
 -- receiving data
 -- script buffer full!
@@ -167,4 +172,5 @@ ttempt to index a nil value (global 'tr')-- lua error:
 [string "    if triop_auto_spawn then"]:1: 'end' expected near <eof>-- lua error:
 [string "      triop_spawn_t = triop_spawn_t + 1"]:1: attempt to perform arithmetic on a nil value (global 'triop_spawn_t')-- lua error:
 [string "      if triop_spawn_t >= TRIOP_INT then"]:1: 'end' expected near <eof>-- lua error:
-[string "        spawn_triop(math.random(W))"]:1: bad argument #1 to 'random' 
+[string "        spawn_triop(math.random(W))"]:1: bad argument #1 to 'random'
+```
