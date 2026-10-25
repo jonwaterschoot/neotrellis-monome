@@ -202,7 +202,7 @@ overflow fires when: script_rx_pos + line_buf_pos >= 32766
 | `serpentine_dev.lua` | 30,538 bytes | ✅ passes | 2,227 bytes under limit |
 | `leaveseqr.lua` | 57,058 bytes | ❌ fails | 24,293 bytes over limit |
 
-The gap is wide. Two minimal test scripts have been created in `doc/scripts/` to bracket the exact threshold tightly:
+The gap is wide. Two minimal test scripts have been created in [`doc/scripts/tresholdmemorytests/`](../scripts/tresholdmemorytests/) to bracket the exact threshold tightly:
 
 | File | Size | Expected on upstream build |
 |---|---|---|

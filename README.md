@@ -8,7 +8,7 @@
 - **Large script uploads.** Stock iii crashes on scripts over about 32 KB. This fork uses [my iii fork on Codeberg](https://codeberg.org/jonwaterschoot/iii/src/branch/fix/streaming-upload), which streams uploads to flash. Scripts up to at least 57 KB work. See the [investigation](neotrellis_monome_picosdk_iii/doc/changestracker/leaveseqr-upload-failure-investigation.md).
 - **Default color picker.** Hold the top-right key at power-up to choose the tint for monochrome output in both serial (norns) and iii mode. See the [firmware README](neotrellis_monome_picosdk_iii/README.md#default-color-picker).
 - **[selector](neotrellis_monome_picosdk_iii/doc/scripts/selector/)**, a script picker. Every script on the device gets a slot; press once to show its name, press again to load it.
-- **Example scripts** in [`doc/scripts`](neotrellis_monome_picosdk_iii/doc/scripts/), including the [leaveseqr](neotrellis_monome_picosdk_iii/doc/scripts/largescript/) sequencer.
+- **Music scripts and color examples** are in the [emulator repo](https://github.com/jonwaterschoot/diii-neotrellis-emulator/tree/main/scripts), including the [leaveseqr](https://github.com/jonwaterschoot/diii-neotrellis-emulator/tree/main/scripts/leaveseqr) sequencer. [`doc/scripts`](neotrellis_monome_picosdk_iii/doc/scripts/) keeps selector and the upload threshold tests.
 
 **Firmware:** [`neotrellis-iii-128-20261024-jonwtr-colorpicker.uf2`](neotrellis_monome_picosdk_iii/uf2s/) for a Pico driving a 16x8 grid. Hold BOOTSEL while plugging in, then drag the file onto the drive.
 
