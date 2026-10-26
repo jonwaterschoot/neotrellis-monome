@@ -10,7 +10,7 @@
 - **[selector](neotrellis_monome_picosdk_iii/doc/scripts/selector/)**, a script picker. Every script on the device gets a slot; press once to show its name, press again to load it.
 - **Music scripts and color examples** are in the [emulator repo](https://github.com/jonwaterschoot/diii-neotrellis-emulator/tree/main/scripts), including the [leaveseqr](https://github.com/jonwaterschoot/diii-neotrellis-emulator/tree/main/scripts/leaveseqr) sequencer. [`doc/scripts`](neotrellis_monome_picosdk_iii/doc/scripts/) keeps selector and the upload threshold tests.
 
-**Firmware:** [`neotrellis-iii-128-20261024-jonwtr-colorpicker.uf2`](neotrellis_monome_picosdk_iii/uf2s/) for a Pico driving a 16x8 grid. Hold BOOTSEL while plugging in, then drag the file onto the drive.
+**Firmware:** download it from the [latest release](https://github.com/jonwaterschoot/neotrellis-monome/releases/latest). `neotrellis-iii-pico-128-…uf2` is for a Pico driving a 16x8 grid, the one tested on hardware. There are also untested builds for 8x8, 4x4 and dink-ii. Hold BOOTSEL while plugging in, then drag the file onto the drive.
 
 **Emulator:** [diii-neotrellis-emulator](https://jonwaterschoot.github.io/diii-neotrellis-emulator/) runs these scripts in the browser, colors included ([source](https://github.com/jonwaterschoot/diii-neotrellis-emulator)).
 
