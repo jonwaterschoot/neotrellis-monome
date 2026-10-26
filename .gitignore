@@ -3,5 +3,4 @@ build/
 .cache/
 .vscode/
 *.uf2
-!**/uf2s/*.uf2
 
