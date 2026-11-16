@@ -93,6 +93,10 @@ add_executable(neotrellis-iii
 
 target_compile_definitions(neotrellis-iii PRIVATE PICO_DIVIDER_IN_RAM=1)
 
+# malloc returns NULL instead of panicking, so Lua can run an emergency
+# collection and report "not enough memory" as an error (tehn/iii#10)
+target_compile_definitions(neotrellis-iii PRIVATE PICO_MALLOC_PANIC=0)
+
 # ====================================================================================
 
 # UPDATE HERE FOR YOUR BOARD AND BUILD
