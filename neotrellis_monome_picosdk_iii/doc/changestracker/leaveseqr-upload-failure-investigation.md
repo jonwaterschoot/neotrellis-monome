@@ -372,7 +372,7 @@ diii transmits with CRLF (`\r\n`). Since `repl_handle_byte` triggers on both `\r
 
 **Existing fix:**
 
-A streaming upload approach exists in `github.com/jonwaterschoot/iii` branch `fix/25kb-streaming`. Instead of a fixed heap buffer, it opens `.uploading.tmp` on LittleFS at upload start and streams each line directly to flash. `vm_test_file()` compiles from the file (using a 256-byte chunked `lua_load()` reader), then `fs_rename()` atomically finalises. No RAM buffer, no size limit beyond flash capacity. Confirmed working on scripts >57 KB.
+A streaming upload approach exists in `github.com/jonwaterschoot/iii-neotrellis` branch `fix/25kb-streaming`. Instead of a fixed heap buffer, it opens `.uploading.tmp` on LittleFS at upload start and streams each line directly to flash. `vm_test_file()` compiles from the file (using a 256-byte chunked `lua_load()` reader), then `fs_rename()` atomically finalises. No RAM buffer, no size limit beyond flash capacity. Confirmed working on scripts >57 KB.
 
 ---
 
@@ -420,9 +420,9 @@ The branches named above were merged and deleted during cleanup on 2026-10-24.
 | Asset | Location | Contains |
 |---|---|---|
 | `main` | `github.com/jonwaterschoot/neotrellis-monome` | Color API, default color picker, selector script. This is the branch to build from. |
-| `combined/pr10-11-12` | `github.com/jonwaterschoot/iii` | iii v1.1.2 with carlosedp's tehn/iii#10, #11 and #12. The `src/iii` submodule points here since 2026-11-16. |
-| `fix/streaming-upload` | `github.com/jonwaterschoot/iii` | Our streaming upload fix on iii v1.1.2, replaced by tehn/iii#11. It did not print runtime errors from scripts and failed on files ending in `\0`. |
-| `fix/25kb-streaming` | `github.com/jonwaterschoot/iii` | The earlier streaming fix, before iii v1.1.2. |
+| `combined/pr10-11-12` | `github.com/jonwaterschoot/iii-neotrellis` | iii v1.1.2 with carlosedp's tehn/iii#10, #11 and #12. The `src/iii` submodule points here since 2026-11-16. |
+| `fix/streaming-upload` | `github.com/jonwaterschoot/iii-neotrellis` | Our streaming upload fix on iii v1.1.2, replaced by tehn/iii#11. It did not print runtime errors from scripts and failed on files ending in `\0`. |
+| `fix/25kb-streaming` | `github.com/jonwaterschoot/iii-neotrellis` | The earlier streaming fix, before iii v1.1.2. |
 | `archive/feature-colors` (tag) | GitHub | The original v1.0-era color work with the write-then-compile upload approach. |
 | `archive/windows-midi-usb-fixes` (tag) | GitHub | March 2026 Windows MIDI/USB fixes on the old layout. |
 
