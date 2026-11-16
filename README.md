@@ -16,6 +16,11 @@
 
 **Questions and bugs:** open an [issue](https://github.com/jonwaterschoot/neotrellis-monome/issues).
 
+**To do:**
+
+- Add carlosedp's [#14](https://codeberg.org/tehn/iii/pulls/14): MIDI clock, start and stop currently send two stray zero bytes. Test with a DAW.
+- Add [#13](https://codeberg.org/tehn/iii/pulls/13), which fixes `pset_write` dropping zeros, once tehn merges it in a new iii version. Grids only rewrite `lib.lua` when the version changes.
+
 ---
 
 
