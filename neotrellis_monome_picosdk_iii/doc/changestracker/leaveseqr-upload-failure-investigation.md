@@ -420,7 +420,8 @@ The branches named above were merged and deleted during cleanup on 2026-10-24.
 | Asset | Location | Contains |
 |---|---|---|
 | `main` | `github.com/jonwaterschoot/neotrellis-monome` | Color API, default color picker, selector script. This is the branch to build from. |
-| `fix/streaming-upload` | `codeberg.org/jonwaterschoot/iii` | The streaming upload fix on iii v1.1.2. The `src/iii` submodule points here. |
+| `combined/pr10-11-12` | `codeberg.org/jonwaterschoot/iii` | iii v1.1.2 with carlosedp's tehn/iii#10, #11 and #12. The `src/iii` submodule points here since 2026-11-16. |
+| `fix/streaming-upload` | `codeberg.org/jonwaterschoot/iii` | Our streaming upload fix on iii v1.1.2, replaced by tehn/iii#11. It did not print runtime errors from scripts and failed on files ending in `\0`. |
 | `fix/25kb-streaming` | `codeberg.org/jonwaterschoot/iii` | The earlier streaming fix, before iii v1.1.2. |
 | `archive/feature-colors` (tag) | GitHub | The original v1.0-era color work with the write-then-compile upload approach. |
 | `archive/windows-midi-usb-fixes` (tag) | GitHub | March 2026 Windows MIDI/USB fixes on the old layout. |
