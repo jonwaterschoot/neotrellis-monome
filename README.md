@@ -14,6 +14,8 @@
 
 **Emulator:** [diii-neotrellis-emulator](https://jonwaterschoot.github.io/diii-neotrellis-emulator/) runs these scripts in the browser, colors included ([source](https://github.com/jonwaterschoot/diii-neotrellis-emulator)).
 
+**Questions and bugs:** open an [issue](https://github.com/jonwaterschoot/neotrellis-monome/issues).
+
 ---
 
 
