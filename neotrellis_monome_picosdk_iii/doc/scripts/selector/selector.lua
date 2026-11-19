@@ -16,7 +16,8 @@ local palette = {
 }
 local white = {255,255,255}
 
--- 3x5 font: one value per row, top to bottom; bit 4 is the left column
+-- 3x5 font: one value per row, top to bottom; bit 4 is the left column.
+-- Rounded shapes, as in carlosedp's font in many-roads-grid; 6, 8, 9 drawn here.
 local font = {
   A={2,5,7,5,5}, B={6,5,6,5,6}, C={3,4,4,4,3}, D={6,5,5,5,6}, E={7,4,6,4,7},
   F={7,4,6,4,4}, G={3,4,5,5,3}, H={5,5,7,5,5}, I={7,2,2,2,7}, J={1,1,1,5,2},
